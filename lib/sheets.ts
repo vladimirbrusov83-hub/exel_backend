@@ -28,25 +28,46 @@ function sheetId() {
   return id;
 }
 
+export const programTag = (prefix: string) => `program:${prefix}`;
+
 /**
  * Program for one client, cached for 5 minutes. Both the page and
  * /api/program/[slug] call this, so they share one cache entry and the Sheets
- * API is hit at most once per client per 5 minutes.
+ * API is hit at most once per client per 5 minutes. Built per prefix so each
+ * client gets its own cache entry and its own invalidation tag.
  */
-export const getProgram = unstable_cache(
-  async (prefix: string): Promise<Program> => {
-    const sheets = sheetsClient();
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId(),
-      // Unbounded A:G — the program has 7 columns and no fixed length.
-      range: `${prefix}_Program!A:G`,
-    });
-    const rows = res.data.values ?? [];
-    return shapeProgram(rows.slice(1)); // drop the header row
-  },
-  ["program"],
-  { revalidate: 300 }
-);
+export function getProgram(prefix: string): Promise<Program> {
+  return unstable_cache(
+    async (): Promise<Program> => {
+      const sheets = sheetsClient();
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId(),
+        // Unbounded A:G — the program has 7 columns and no fixed length.
+        range: `${prefix}_Program!A:G`,
+      });
+      const rows = res.data.values ?? [];
+      return shapeProgram(rows.slice(1)); // drop the header row
+    },
+    ["program", prefix],
+    { revalidate: 300, tags: [programTag(prefix)] }
+  )();
+}
+
+/** Appends rows to a client's Program tab. Rows are Week..RPE Target, 7 cells each. */
+export async function appendProgramRows(
+  prefix: string,
+  rows: string[][]
+): Promise<void> {
+  const sheets = sheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId(),
+    range: `${prefix}_Program!A:G`,
+    // RAW so a load like "+5" or a note starting with "=" stays text.
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values: rows },
+  });
+}
 
 /** Appends one note row (Timestamp | Week | Day | Note) to the client's Notes tab. */
 export async function appendNote(

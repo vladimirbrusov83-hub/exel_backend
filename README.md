@@ -5,9 +5,11 @@ leave a short note per training day. **One Google Sheet is the entire backend** 
 database, no login. Each client gets a private, unguessable URL.
 
 ```
-/program/<slug>            the client's program, grouped Week -> Day, with a note box per day
-/api/program/<slug>  GET   the same data as JSON (handy for debugging)
+/program/<client-slug>     the client's program, grouped Week -> Day, with a note box per day
+/coach/<coach-slug>        your page: copy a week into the next one with the loads bumped
+/api/program/<slug>  GET   the same program data as JSON (handy for debugging)
 /api/notes/<slug>    POST  { week, day, note } -> appends a row to that client's Notes tab
+/api/coach/<slug>    POST  { client, sourceWeek, bump } -> appends next week's rows
 ```
 
 Access control is the slug and nothing else. Send the link privately; treat it like a
@@ -94,6 +96,7 @@ Production: add the same five in **Vercel → Project → Settings → Environme
 | `SHEET_ID` | the id from the Sheet URL |
 | `CLIENT_1_SLUG` | random string, e.g. `openssl rand -hex 12` → client 1's URL |
 | `CLIENT_2_SLUG` | same, for client 2 |
+| `COACH_SLUG` | same again — this one is *your* page at `/coach/<slug>`, keep it to yourself |
 
 The private key really does contain literal `\n` characters when stored in an env var;
 the app converts them back to real newlines. Don't "fix" them by hand.
@@ -106,6 +109,22 @@ npm run build && npm start
 ```
 
 An unknown slug returns a plain 404 — it never hints that other slugs exist.
+
+## Building next week
+
+Open `/coach/<COACH_SLUG>` — your page, not a client's. Pick a client, pick the week to
+copy from, pick a load change, and it shows you every row before and after. Hit **Write**
+and the whole week lands in the Program tab; you then fine-tune numbers in the Sheet
+instead of retyping the structure.
+
+- **Same / +2.5 / +5** add to the number in the Load cell and keep the units, so `100 kg`
+  becomes `105 kg`. **Deload −10%** multiplies and rounds to the nearest 2.5.
+- Cells with no number (`BW`, `bar`, `blue band`, empty) are copied unchanged.
+- Sets, reps and RPE are copied as-is, including set-by-set blocks.
+- The new week's name is the old one with its number advanced: `Week 4` becomes `Week 5`.
+  If that week already exists it refuses rather than writing duplicates — delete or rename
+  the existing one first.
+- The client sees the new week immediately; their 5-minute cache is cleared on write.
 
 ## How caching works
 
