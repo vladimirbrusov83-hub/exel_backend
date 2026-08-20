@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prefixForSlug } from "@/lib/clients";
-import { getProgram, type Week } from "@/lib/sheets";
+import { getProgram, type SetRow, type Week } from "@/lib/sheets";
 import NoteForm from "./NoteForm";
 
 // Render every request; getProgram's 5-minute cache is the only cache layer,
@@ -60,22 +60,30 @@ export default async function ProgramPage({
                 </h3>
 
                 <ul className="mt-3 divide-y divide-neutral-200 dark:divide-neutral-700">
-                  {day.exercises.map((ex, j) => (
-                    <li key={`${ex.exercise}-${j}`} className="py-3">
-                      <p className="font-semibold">{ex.exercise}</p>
-                      <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400">
-                        {ex.sets && ex.reps && (
-                          <span>
-                            <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                              {ex.sets} × {ex.reps}
-                            </span>
-                          </span>
-                        )}
-                        {ex.sets && !ex.reps && <span>{ex.sets} sets</span>}
-                        {!ex.sets && ex.reps && <span>{ex.reps} reps</span>}
-                        {ex.load && <span>Load: {ex.load}</span>}
-                        {ex.rpe && <span>RPE {ex.rpe}</span>}
-                      </dl>
+                  {day.movements.map((m, j) => (
+                    <li key={`${m.exercise}-${j}`} className="py-3">
+                      <p className="font-semibold">{m.exercise}</p>
+                      {m.sets.length === 1 ? (
+                        <Prescription set={m.sets[0]} />
+                      ) : (
+                        <ol className="mt-2 space-y-1">
+                          {m.sets.map((set, k) => (
+                            <li key={k} className="flex items-baseline gap-3 text-sm">
+                              <span className="w-6 shrink-0 text-right font-mono text-xs text-neutral-400">
+                                {set.set || k + 1}
+                              </span>
+                              <span className="font-medium">
+                                {[set.load, set.reps].filter(Boolean).join(" × ")}
+                              </span>
+                              {set.rpe && (
+                                <span className="text-neutral-500 dark:text-neutral-400">
+                                  RPE {set.rpe}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -87,6 +95,23 @@ export default async function ProgramPage({
         </details>
       ))}
     </main>
+  );
+}
+
+/** A single row: the "4 x 5, 225 lb, RPE 7" style prescription. */
+function Prescription({ set }: { set: SetRow }) {
+  return (
+    <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400">
+      {set.set && set.reps && (
+        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+          {set.set} × {set.reps}
+        </span>
+      )}
+      {set.set && !set.reps && <span>{set.set} sets</span>}
+      {!set.set && set.reps && <span>{set.reps} reps</span>}
+      {set.load && <span>Load: {set.load}</span>}
+      {set.rpe && <span>RPE {set.rpe}</span>}
+    </p>
   );
 }
 

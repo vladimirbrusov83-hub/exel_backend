@@ -1,13 +1,14 @@
 // Pure shaping of the Program tab's rows. No I/O, so it can be exercised directly.
 
-export type Exercise = {
-  exercise: string;
-  sets: string;
-  reps: string;
-  load: string;
-  rpe: string;
-};
-export type Day = { day: string; exercises: Exercise[] };
+/** One row of the Program tab, below an exercise heading. */
+export type SetRow = { set: string; reps: string; load: string; rpe: string };
+/**
+ * One exercise. Consecutive rows in the same day naming the same exercise are
+ * grouped here, so a coach can write either one row per exercise ("4 x 5 @ 225")
+ * or one row per set, and both read well on a phone.
+ */
+export type Movement = { exercise: string; sets: SetRow[] };
+export type Day = { day: string; movements: Movement[] };
 export type Week = { week: string; days: Day[] };
 export type Program = { weeks: Week[] };
 
@@ -44,14 +45,21 @@ export function shapeProgram(rows: unknown[][]): Program {
 
     let day = week.days.find((d) => d.day === dayLabel);
     if (!day) {
-      day = { day: dayLabel, exercises: [] };
+      day = { day: dayLabel, movements: [] };
       week.days.push(day);
     }
 
-    day.exercises.push({ exercise, sets, reps, load, rpe });
+    // Only *consecutive* rows group together: the same lift done again later in
+    // the session stays its own block, which is usually what the coach meant.
+    const last = day.movements[day.movements.length - 1];
+    const movement =
+      last && last.exercise === exercise ? last : { exercise, sets: [] };
+    if (movement !== last) day.movements.push(movement);
+
+    movement.sets.push({ set: sets, reps, load, rpe });
   }
 
-  // Weeks numerically; days keep the order they appear in the Sheet.
+  // Weeks numerically; days and exercises keep the order they appear in the Sheet.
   weeks.sort((a, b) => weekOrder(a.week) - weekOrder(b.week));
   return { weeks };
 }

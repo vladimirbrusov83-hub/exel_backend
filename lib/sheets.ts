@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import { unstable_cache } from "next/cache";
 import { shapeProgram, type Program } from "./program";
 
-export type { Program, Week, Day, Exercise } from "./program";
+export type { Program, Week, Day, Movement, SetRow } from "./program";
 
 function sheetsClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;

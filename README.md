@@ -34,6 +34,36 @@ Week 1 | Day 1 — Lower | Romanian deadlift | 3 | 8 | 185 lb | 8
 Week 1 | Day 2 — Upper | Bench press       | 5 | 5 | 155 lb | 7
 ```
 
+### Writing every set out
+
+Repeat the exercise name on consecutive rows and use the **Sets** column as the set
+number. The app merges them into one block:
+
+```
+Week 1 | Day 1 — Upper | Bench press  | 1 |  6 | 50 kg  | 6
+Week 1 | Day 1 — Upper | Bench press  | 2 |  5 | 60 kg  | 7
+Week 1 | Day 1 — Upper | Bench press  | 3 | 10 | 90 kg  | 8
+Week 1 | Day 1 — Upper | Bench press  | 4 |  6 | 100 kg | 9
+Week 1 | Day 1 — Upper | Lat pulldown | 3 | 12 | 60 kg  | 8
+```
+
+reads on the phone as:
+
+```
+Bench press
+  1   50 kg × 6    RPE 6
+  2   60 kg × 5    RPE 7
+  3   90 kg × 10   RPE 8
+  4  100 kg × 6    RPE 9
+
+Lat pulldown
+  3 × 12   Load: 60 kg   RPE 8
+```
+
+Both styles can sit in the same program — write main lifts set by set and accessories
+on one line. Only *consecutive* rows group, so the same lift programmed again later in
+the session stays its own block.
+
 Weeks are ordered by the number in them, so `Week 10` correctly follows `Week 9`. Days
 appear in the order they appear in the Sheet. Blank cells are fine. Blank rows are skipped.
 You never touch the Notes tabs — the app appends to them.
