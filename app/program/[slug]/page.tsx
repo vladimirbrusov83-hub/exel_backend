@@ -40,10 +40,10 @@ export default async function ProgramPage({
         <details
           key={week.week}
           open={i === 0}
-          className="group mt-6 rounded-xl border border-neutral-200 dark:border-neutral-700"
+          className="mt-6 rounded-xl border border-neutral-200 dark:border-neutral-700"
         >
           <summary className="flex min-h-12 cursor-pointer items-center gap-2 px-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
-            <span aria-hidden className="text-neutral-400 transition-transform group-open:rotate-90">
+            <span aria-hidden className="chev text-neutral-400">
               &#9656;
             </span>
             {week.week || "Week"}

@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Week disclosure arrow. Plain CSS rather than a Tailwind group-open variant,
+   which does not generate a rule for [open] on <details>. */
+.chev {
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+details[open] > summary .chev {
+  transform: rotate(90deg);
+}
