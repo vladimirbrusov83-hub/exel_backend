@@ -1,25 +1,28 @@
 # ClientProgram
 
-A Next.js app that shows each coaching client their training program and lets them
-leave a short note per training day. **One Google Sheet is the entire backend** — no
-database, no login. Each client gets a private, unguessable URL.
+Shows each coaching client their training program on their phone and lets them leave a
+short note after each session. **One Google Sheet is the entire backend** — no database,
+no login, no accounts. Each client gets a private, unguessable URL.
 
-```
-/program/<client-slug>     the client's program, grouped Week -> Day, with a note box per day
-/coach/<coach-slug>        your page: copy any training day into a new week or day
-/api/program/<slug>  GET   the same program data as JSON (handy for debugging)
-/api/notes/<slug>    POST  { week, day, note } -> appends a row to that client's Notes tab
-/api/coach/<slug>    POST  { client, sourceWeek, sourceDay, targetWeek, targetDay }
-```
+| Page | Who opens it |
+|---|---|
+| `/program/<client-slug>` | your client — their program, week by week, with a note box under each day |
+| `/coach/<coach-slug>` | you — copy any training day into a new week or day |
 
-Access control is the slug and nothing else. Send the link privately; treat it like a
-password. The pages are `noindex` so search engines won't find them.
+Access control is the slug and nothing else. Send each link privately and treat it like a
+password. The pages are `noindex`, so search engines won't find them. An unknown slug
+returns a plain 404 that gives nothing away.
 
 ---
 
-## The Google Sheet
+## Setting it up
 
-One Sheet, four tabs, named **exactly** like this (capital C, underscore, capital P/N):
+Three parts, once. Roughly 15 minutes.
+
+### 1. The Google Sheet
+
+Create one Sheet with four tabs, named **exactly** like this — capital C, underscore,
+capital P and N:
 
 | Tab | Row 1 headers |
 |---|---|
@@ -28,18 +31,79 @@ One Sheet, four tabs, named **exactly** like this (capital C, underscore, capita
 | `Client2_Program` | Week, Day, Exercise, Sets, Reps, Load, RPE Target |
 | `Client2_Notes` | Timestamp, Week, Day, Note |
 
-Fill the Program tabs one exercise per row, repeating the Week and Day in every row:
+Write one day into `Client1_Program` to start with. You never type in the Notes tabs —
+the app appends to those.
+
+The Sheet ID is the long string in the Sheet's URL between `/d/` and `/edit`. You'll need
+it in part 3.
+
+### 2. Google Cloud
+
+This creates a robot account that reads and writes your Sheet on the app's behalf.
+
+1. <https://console.cloud.google.com> → create a project, call it `ClientProgram`.
+2. **APIs & Services → Library** → search *Google Sheets API* → **Enable**.
+3. **APIs & Services → Credentials → Create Credentials → Service account.**
+   Name it `sheets-writer`. Skip the optional role and access steps → **Done**.
+4. Click the new service account → **Keys → Add Key → Create new key → JSON**.
+   A `.json` file downloads. That is the only copy — keep it somewhere safe, and never
+   inside this repo.
+5. Open that JSON and copy the `client_email` value. It looks like
+   `sheets-writer@clientprogram-xxxxx.iam.gserviceaccount.com`.
+6. Open your Google Sheet → **Share** → paste that email → set it to **Editor** → Send.
+
+Step 6 is the one people forget. Enabling the API in step 2 does not give the robot
+account access to your Sheet; sharing the Sheet with it does. Both steps are required.
+
+### 3. Environment variables
+
+Fill in `.env.local` for local use, and add the same six in
+**Vercel → Project → Settings → Environment Variables** for the live site.
+
+| Variable | Where it comes from |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` from the JSON key |
+| `GOOGLE_PRIVATE_KEY` | `private_key` from the JSON key — paste it exactly as it appears, keep the `\n` sequences, wrap the whole thing in double quotes |
+| `SHEET_ID` | the id from the Sheet's URL |
+| `CLIENT_1_SLUG` | a long random string — becomes client 1's link |
+| `CLIENT_2_SLUG` | the same, for client 2 |
+| `COACH_SLUG` | the same again — this one is *your* page, keep it to yourself |
+
+Generate a slug with `openssl rand -hex 12`.
+
+The private key genuinely contains literal `\n` characters when it lives in an env var,
+and the app turns them back into real newlines. Don't "fix" them by hand.
+
+### Run it
+
+```bash
+npm run dev                       # then open /program/<CLIENT_1_SLUG>
+npm run build && npm start        # production build
+```
+
+If the page says *"Couldn't load your program"*, the message underneath tells you which
+of the three parts above isn't finished yet.
+
+---
+
+## Writing a program
+
+One exercise per row. Repeat the week and day on every row:
 
 ```
-Week 1 | Day 1 — Lower | Back squat        | 4 | 5 | 225 lb | 7
-Week 1 | Day 1 — Lower | Romanian deadlift | 3 | 8 | 185 lb | 8
-Week 1 | Day 2 — Upper | Bench press       | 5 | 5 | 155 lb | 7
+Week 1 | Day 1 — Lower | Back squat        | 4 | 5    | 100 kg | 7
+Week 1 | Day 1 — Lower | Romanian deadlift | 3 | 8    | 80 kg  | 8
+Week 1 | Day 1 — Lower | Plank             | 3 | 45 s | BW     |
+Week 1 | Day 2 — Upper | Bench press       | 5 | 5    | 70 kg  | 7
 ```
+
+Blank cells are fine. Blank rows are skipped. Weeks are ordered by the number in them, so
+`Week 10` correctly follows `Week 9`, and days appear in whatever order you put them in.
 
 ### Writing every set out
 
 Repeat the exercise name on consecutive rows and use the **Sets** column as the set
-number. The app merges them into one block:
+number. Those rows merge into one block:
 
 ```
 Week 1 | Day 1 — Upper | Bench press  | 1 |  6 | 50 kg  | 6
@@ -62,88 +126,67 @@ Lat pulldown
   3 × 12   Load: 60 kg   RPE 8
 ```
 
-Both styles can sit in the same program — write main lifts set by set and accessories
-on one line. Only *consecutive* rows group, so the same lift programmed again later in
-the session stays its own block.
+Both styles can sit in the same program — main lifts set by set, accessories on one line.
+Only *consecutive* rows group, so the same lift programmed again later in the session stays
+its own block. Leave the Sets column blank and the sets are just numbered 1, 2, 3.
 
-Weeks are ordered by the number in them, so `Week 10` correctly follows `Week 9`. Days
-appear in the order they appear in the Sheet. Blank cells are fine. Blank rows are skipped.
-You never touch the Notes tabs — the app appends to them.
+### Copying a day
 
-## Google Cloud setup (do this once)
+Open `/coach/<COACH_SLUG>`. Pick a client, pick a day to copy, say which week it goes into
+and what to call it, and hit **Copy day**. The whole day lands in the Program tab exactly
+as written; you then change the numbers in the Sheet.
 
-1. <https://console.cloud.google.com> → create a project, call it `ClientProgram`.
-2. **APIs & Services → Library** → search *Google Sheets API* → **Enable**.
-3. **APIs & Services → Credentials → Create Credentials → Service account.**
-   Name it `sheets-writer`. Skip the optional role and access steps → **Done**.
-4. Click the new service account → **Keys → Add Key → Create new key → JSON**.
-   A `.json` file downloads. That's the only copy — keep it somewhere safe, out of this repo.
-5. Open that JSON and copy the `client_email` value. It looks like
-   `sheets-writer@clientprogram-xxxxx.iam.gserviceaccount.com`.
-6. Open the Google Sheet → **Share** → paste that email → set it to **Editor** → Send.
-   *Step 2 does not do this for you. Both steps are required, and this is the one people forget.*
-7. The Sheet ID is the long string in the Sheet's URL between `/d/` and `/edit`.
-
-## Environment variables
-
-Local: fill in `.env.local` (already created, with slugs pre-generated).
-Production: add the same five in **Vercel → Project → Settings → Environment Variables**.
-
-| Variable | Where it comes from |
-|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` from the JSON key |
-| `GOOGLE_PRIVATE_KEY` | `private_key` from the JSON key — paste it as-is, keep the `\n` sequences, wrap in double quotes |
-| `SHEET_ID` | the id from the Sheet URL |
-| `CLIENT_1_SLUG` | random string, e.g. `openssl rand -hex 12` → client 1's URL |
-| `CLIENT_2_SLUG` | same, for client 2 |
-| `COACH_SLUG` | same again — this one is *your* page at `/coach/<slug>`, keep it to yourself |
-
-The private key really does contain literal `\n` characters when stored in an env var;
-the app converts them back to real newlines. Don't "fix" them by hand.
-
-## Run it
-
-```bash
-npm run dev            # http://localhost:3000/program/<CLIENT_1_SLUG>
-npm run build && npm start
-```
-
-An unknown slug returns a plain 404 — it never hints that other slugs exist.
-
-## Copying a day
-
-Open `/coach/<COACH_SLUG>` — your page, not a client's. Pick a client, pick a day to copy,
-say which week and day name it should become, and hit **Copy day**. The whole day lands in
-the Program tab exactly as written, and you change the numbers in the Sheet.
-
-- **Into week** offers every existing week plus *New week…*, prefilled with the next number
-  up (`Week 1` -> `Week 2`). **Called** is the day's name, prefilled from the day you copied.
-- Nothing is recalculated — loads, sets, reps and RPE copy across untouched, including
+- **Into week** lists your existing weeks plus *New week…*, prefilled with the next number
+  up. **Called** is prefilled with the name of the day you copied. So "same day, next week"
+  is two taps.
+- Nothing is recalculated. Loads, sets, reps and RPE copy across untouched, including
   set-by-set blocks and cells like `BW` or `bar`.
 - If that week already has a day with that name it refuses rather than writing duplicates.
   Pick a different name.
-- The client sees it immediately; their 5-minute cache is cleared on write.
+- Your client sees it straight away.
 
-## How caching works
+### Notes from clients
 
-`getProgram()` in `lib/sheets.ts` is wrapped in a 5-minute cache, and the page is
-`force-dynamic` so that cache is the only one. Edit the Sheet and the change shows up
-within 5 minutes. Notes are written straight through — never cached.
+Each day on the client's page has a note box — how the session felt, actual RPE, whatever
+they want to tell you, up to 500 characters. Saving appends a row to their `_Notes` tab
+with a timestamp. Notes are not shown back to the client, and never appear in the app;
+read them in the Sheet.
 
-## Adding a third client
+---
 
-Add a `Client3_Program` / `Client3_Notes` pair of tabs, a `CLIENT_3_SLUG` env var, and one
-line in `lib/clients.ts`. Nothing else changes.
+## Good to know
 
-## Files
+**Changes take up to 5 minutes.** Program data is cached for 5 minutes so the app isn't
+hammering the Google API. Edit the Sheet and give it a moment. A day copied from the coach
+page appears immediately.
+
+**Adding a third client.** Add a `Client3_Program` / `Client3_Notes` pair of tabs, a
+`CLIENT_3_SLUG` env var, and one line in `lib/clients.ts`. Nothing else changes.
+
+**Deploying.** `git push` — Vercel picks it up in about 30 seconds. Environment variables
+have to be set in the Vercel dashboard separately from `.env.local`.
+
+**If a client's link stops working.** Check that `.env.local` (or Vercel) still has their
+slug, and that the Sheet is still shared with the service-account email.
+
+---
+
+## For developers
 
 ```
-app/program/[slug]/page.tsx      the program page (Server Component)
-app/program/[slug]/NoteForm.tsx  the note textarea + Save button
+app/program/[slug]/page.tsx      the client's program page (Server Component)
+app/program/[slug]/NoteForm.tsx  the note textarea and Save button
 app/program/[slug]/error.tsx     last-resort error screen
-app/api/program/[slug]/route.ts  GET program as JSON
-app/api/notes/[slug]/route.ts    POST a note (validates length + that the week/day exists)
-lib/sheets.ts                    all Google Sheets access, plus the 5-minute cache
-lib/program.ts                   pure row -> Week/Day/Exercise shaping
-lib/clients.ts                   slug -> tab prefix map
+app/coach/[slug]/page.tsx        the coach page shell
+app/coach/[slug]/CoachPanel.tsx  client / source day / destination pickers and preview
+app/api/program/[slug]/route.ts  GET  program as JSON
+app/api/notes/[slug]/route.ts    POST a note
+app/api/coach/[slug]/route.ts    POST a day copy
+lib/sheets.ts                    every Google Sheets call, plus the 5-minute cache
+lib/program.ts                   pure Sheet rows -> Week / Day / Movement shaping
+lib/clients.ts                   slug -> tab prefix, and the coach slug check
+lib/weeks.ts                     "Week 4" -> "Week 5"
 ```
+
+Next.js 15 (App Router), TypeScript, Tailwind 4, `googleapis`. No database client, no
+state library, no test runner. `CLAUDE.md` has the working notes and the traps.
