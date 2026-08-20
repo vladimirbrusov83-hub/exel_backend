@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# keep the template, never the real values
+!.env.example
+
+# downloaded Google service-account keys
+*.json.key
+service-account*.json

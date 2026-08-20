@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClientProgram
 
-## Getting Started
+A Next.js app that shows each coaching client their training program and lets them
+leave a short note per training day. **One Google Sheet is the entire backend** — no
+database, no login. Each client gets a private, unguessable URL.
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+/program/<slug>            the client's program, grouped Week -> Day, with a note box per day
+/api/program/<slug>  GET   the same data as JSON (handy for debugging)
+/api/notes/<slug>    POST  { week, day, note } -> appends a row to that client's Notes tab
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Access control is the slug and nothing else. Send the link privately; treat it like a
+password. The pages are `noindex` so search engines won't find them.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## The Google Sheet
 
-## Learn More
+One Sheet, four tabs, named **exactly** like this (capital C, underscore, capital P/N):
 
-To learn more about Next.js, take a look at the following resources:
+| Tab | Row 1 headers |
+|---|---|
+| `Client1_Program` | Week, Day, Exercise, Sets, Reps, Load, RPE Target |
+| `Client1_Notes` | Timestamp, Week, Day, Note |
+| `Client2_Program` | Week, Day, Exercise, Sets, Reps, Load, RPE Target |
+| `Client2_Notes` | Timestamp, Week, Day, Note |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Fill the Program tabs one exercise per row, repeating the Week and Day in every row:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+Week 1 | Day 1 — Lower | Back squat        | 4 | 5 | 225 lb | 7
+Week 1 | Day 1 — Lower | Romanian deadlift | 3 | 8 | 185 lb | 8
+Week 1 | Day 2 — Upper | Bench press       | 5 | 5 | 155 lb | 7
+```
 
-## Deploy on Vercel
+Weeks are ordered by the number in them, so `Week 10` correctly follows `Week 9`. Days
+appear in the order they appear in the Sheet. Blank cells are fine. Blank rows are skipped.
+You never touch the Notes tabs — the app appends to them.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Google Cloud setup (do this once)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. <https://console.cloud.google.com> → create a project, call it `ClientProgram`.
+2. **APIs & Services → Library** → search *Google Sheets API* → **Enable**.
+3. **APIs & Services → Credentials → Create Credentials → Service account.**
+   Name it `sheets-writer`. Skip the optional role and access steps → **Done**.
+4. Click the new service account → **Keys → Add Key → Create new key → JSON**.
+   A `.json` file downloads. That's the only copy — keep it somewhere safe, out of this repo.
+5. Open that JSON and copy the `client_email` value. It looks like
+   `sheets-writer@clientprogram-xxxxx.iam.gserviceaccount.com`.
+6. Open the Google Sheet → **Share** → paste that email → set it to **Editor** → Send.
+   *Step 2 does not do this for you. Both steps are required, and this is the one people forget.*
+7. The Sheet ID is the long string in the Sheet's URL between `/d/` and `/edit`.
+
+## Environment variables
+
+Local: fill in `.env.local` (already created, with slugs pre-generated).
+Production: add the same five in **Vercel → Project → Settings → Environment Variables**.
+
+| Variable | Where it comes from |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` from the JSON key |
+| `GOOGLE_PRIVATE_KEY` | `private_key` from the JSON key — paste it as-is, keep the `\n` sequences, wrap in double quotes |
+| `SHEET_ID` | the id from the Sheet URL |
+| `CLIENT_1_SLUG` | random string, e.g. `openssl rand -hex 12` → client 1's URL |
+| `CLIENT_2_SLUG` | same, for client 2 |
+
+The private key really does contain literal `\n` characters when stored in an env var;
+the app converts them back to real newlines. Don't "fix" them by hand.
+
+## Run it
+
+```bash
+npm run dev            # http://localhost:3000/program/<CLIENT_1_SLUG>
+npm run build && npm start
+```
+
+An unknown slug returns a plain 404 — it never hints that other slugs exist.
+
+## How caching works
+
+`getProgram()` in `lib/sheets.ts` is wrapped in a 5-minute cache, and the page is
+`force-dynamic` so that cache is the only one. Edit the Sheet and the change shows up
+within 5 minutes. Notes are written straight through — never cached.
+
+## Adding a third client
+
+Add a `Client3_Program` / `Client3_Notes` pair of tabs, a `CLIENT_3_SLUG` env var, and one
+line in `lib/clients.ts`. Nothing else changes.
+
+## Files
+
+```
+app/program/[slug]/page.tsx      the program page (Server Component)
+app/program/[slug]/NoteForm.tsx  the note textarea + Save button
+app/program/[slug]/error.tsx     last-resort error screen
+app/api/program/[slug]/route.ts  GET program as JSON
+app/api/notes/[slug]/route.ts    POST a note (validates length + that the week/day exists)
+lib/sheets.ts                    all Google Sheets access, plus the 5-minute cache
+lib/program.ts                   pure row -> Week/Day/Exercise shaping
+lib/clients.ts                   slug -> tab prefix map
+```
