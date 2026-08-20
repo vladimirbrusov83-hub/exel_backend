@@ -81,6 +81,22 @@ weekday grid is not possible and was not what was asked for. Columns are a fixed
 scroll horizontally inside their own container on a phone; they share the width from `sm` up.
 The page body itself must never scroll horizontally.
 
+## Editing a day — the one place that can destroy data
+
+`replaceDayRows` in `lib/sheets.ts` rewrites the Program tab to swap one week+day's rows.
+Two rules, both deliberate:
+
+- **The row rebuild is pure and lives in `spliceDayRows` (`lib/program.ts`).** It returns
+  `null` when the day isn't present so the caller refuses instead of writing. Test it
+  directly rather than through the API — the covered cases are: fewer rows, more rows,
+  first day, last day, the same day name in another week, short rows, and a missing day.
+- **`values.update` first, `values.clear` for the leftover tail second. Never clear first.**
+  A failure between the two calls then leaves stale extra rows, which is recoverable, rather
+  than an empty tab, which is not.
+
+`toShorthand` in `lib/parse.ts` is the inverse of `parseDay` and prefills the editor.
+Round-tripping is lossy on purpose: the Sets column is regenerated as 1..n.
+
 ## Caching
 
 `getProgram(prefix)` in `lib/sheets.ts` wraps the read in `unstable_cache` — 5 minute

@@ -12,6 +12,8 @@
 // Set lines are load*reps, with an optional RPE after @ or "rpe". The load side
 // is copied verbatim, so "b", "bw" and "20kg" all survive. Pure — no I/O.
 
+import type { Movement } from "./program";
+
 export type ParsedSet = { load: string; reps: string; rpe: string };
 export type ParsedExercise = { name: string; sets: ParsedSet[] };
 export type ParsedDay = {
@@ -108,4 +110,23 @@ export function toProgramRows(
     });
   }
   return rows;
+}
+
+/**
+ * The inverse of `parseDay`, for prefilling the editor: turns a day's movements
+ * back into the shorthand a coach typed.
+ */
+export function toShorthand(movements: Movement[]): string {
+  const lines: string[] = [];
+  movements.forEach((movement, i) => {
+    // A) B) C) ... and then plain names once past Z, which no day will reach.
+    const letter = i < 26 ? String.fromCharCode(65 + i) : "";
+    lines.push(letter ? `${letter}) ${movement.exercise}` : movement.exercise);
+    for (const set of movement.sets) {
+      const load = set.load || "-";
+      const reps = set.reps || "?";
+      lines.push(set.rpe ? `${load}*${reps} @${set.rpe}` : `${load}*${reps}`);
+    }
+  });
+  return lines.join("\n");
 }

@@ -96,7 +96,23 @@ Two weeks side by side, each showing its days as cards with every exercise and s
 the same shape as the program itself. The arrows step back and forward two weeks at a
 time, starting on the latest two. On a phone the columns swipe sideways.
 
-It's a read-only view. To change something, use the other two tabs or edit the Sheet.
+Each day card has an **Edit** link. It opens that day in the same shorthand you write in,
+already filled in:
+
+```
+A) Bench press
+50*12
+60*10
+B) DL
+100*12
+```
+
+Change whatever you like — weights, reps, exercise names, add or remove exercises — and
+**Save**. That day's rows in the Sheet are replaced in place; every other day is untouched
+and stays in the same order. Cancel throws the changes away.
+
+Clearing the whole box doesn't delete the day — it refuses, because that's more likely a
+mistake than an intent. To remove a day entirely, delete its rows in the Sheet.
 
 ### Write a day
 
@@ -228,10 +244,13 @@ app/program/[slug]/error.tsx     last-resort error screen
 app/coach/[slug]/page.tsx        the coach page shell
 app/coach/[slug]/CoachPanel.tsx  client picker, the two tabs, and the copy-a-day UI
 app/coach/[slug]/PasteDay.tsx    the shorthand box, live preview and Add to Sheet
+app/coach/[slug]/Calendar.tsx    two weeks side by side, with per-day Edit
+app/coach/[slug]/DayEditor.tsx   inline editor that replaces one day
 app/api/program/[slug]/route.ts  GET  program as JSON
 app/api/notes/[slug]/route.ts    POST a note
 app/api/coach/[slug]/route.ts    POST a day copy
 app/api/coach/paste/[slug]/route.ts  POST a day written in shorthand
+app/api/coach/edit/[slug]/route.ts   POST a replacement for an existing day
 lib/sheets.ts                    every Google Sheets call, plus the 5-minute cache
 lib/program.ts                   pure Sheet rows -> Week / Day / Movement shaping
 lib/clients.ts                   slug -> tab prefix, and the coach slug check

@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { unstable_cache } from "next/cache";
-import { shapeProgram, type Program } from "./program";
+import { shapeProgram, spliceDayRows, type Program } from "./program";
 
 export type { Program, Week, Day, Movement, SetRow } from "./program";
 
@@ -51,6 +51,49 @@ export function getProgram(prefix: string): Promise<Program> {
     ["program", prefix],
     { revalidate: 300, tags: [programTag(prefix)] }
   )();
+}
+
+/**
+ * Replaces every row belonging to one week+day with `rows`, keeping the day in
+ * the position it already occupied. Used by the day editor.
+ *
+ * Order matters: the overwrite happens first and the leftover tail is cleared
+ * afterwards, so a failure between the two calls leaves stale extra rows rather
+ * than an empty tab. Never clear first.
+ */
+export async function replaceDayRows(
+  prefix: string,
+  week: string,
+  day: string,
+  rows: string[][]
+): Promise<{ replaced: number }> {
+  const sheets = sheetsClient();
+  const id = sheetId();
+  const range = `${prefix}_Program!A:G`;
+
+  const existing = await sheets.spreadsheets.values.get({ spreadsheetId: id, range });
+  const body = (existing.data.values ?? []).slice(1); // row 1 is the header, never touched
+
+  const spliced = spliceDayRows(body, week, day, rows);
+  if (!spliced) throw new Error(`No rows found for ${week} / ${day}`);
+  const { next, replaced } = spliced;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: id,
+    range: `${prefix}_Program!A2:G${1 + next.length}`,
+    valueInputOption: "RAW",
+    requestBody: { values: next },
+  });
+
+  // Only now drop whatever the shorter list left behind.
+  if (body.length > next.length) {
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: id,
+      range: `${prefix}_Program!A${2 + next.length}:G${1 + body.length}`,
+    });
+  }
+
+  return { replaced };
 }
 
 /** Appends rows to a client's Program tab. Rows are Week..RPE Target, 7 cells each. */

@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import DayEditor from "./DayEditor";
 import type { Week } from "@/lib/sheets";
 
 /** How many weeks sit side by side. */
 const SPAN = 2;
 
-export default function Calendar({ weeks }: { weeks: Week[] }) {
+export default function Calendar({
+  slug,
+  prefix,
+  weeks,
+}: {
+  slug: string;
+  prefix: string;
+  weeks: Week[];
+}) {
+  // Which day card is open in the editor, as "<week>|<day>".
+  const [editing, setEditing] = useState<string | null>(null);
   // Start on the last SPAN weeks — the ones being written right now.
   const [start, setStart] = useState(Math.max(0, weeks.length - SPAN));
   const visible = weeks.slice(start, start + SPAN);
@@ -70,11 +81,31 @@ export default function Calendar({ weeks }: { weeks: Week[] }) {
                   >
                     <header className="flex items-baseline justify-between gap-2">
                       <h4 className="text-sm font-bold">{day.day || "Day"}</h4>
-                      <span className="text-xs text-neutral-400">
+                      <span className="ml-auto text-xs text-neutral-400">
                         {day.movements.length}ex
                       </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditing((k) => (k === `${week.week}|${day.day}` ? null : `${week.week}|${day.day}`))
+                        }
+                        className="text-xs font-semibold text-neutral-500 underline underline-offset-2 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                      >
+                        {editing === `${week.week}|${day.day}` ? "Close" : "Edit"}
+                      </button>
                     </header>
 
+                    {editing === `${week.week}|${day.day}` && (
+                      <DayEditor
+                        slug={slug}
+                        prefix={prefix}
+                        week={week.week}
+                        day={day}
+                        onClose={() => setEditing(null)}
+                      />
+                    )}
+
+                    {editing !== `${week.week}|${day.day}` && (
                     <ul className="mt-2 space-y-1.5">
                       {day.movements.map((m, i) => (
                         <li key={`${m.exercise}-${i}`}>
@@ -93,6 +124,7 @@ export default function Calendar({ weeks }: { weeks: Week[] }) {
                         </li>
                       ))}
                     </ul>
+                    )}
                   </article>
                 ))}
               </div>

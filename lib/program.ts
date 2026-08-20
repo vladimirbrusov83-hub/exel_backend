@@ -63,3 +63,44 @@ export function shapeProgram(rows: unknown[][]): Program {
   weeks.sort((a, b) => weekOrder(a.week) - weekOrder(b.week));
   return { weeks };
 }
+
+/** Pads a Sheet row to the 7 Program columns. */
+export function padRow(row: unknown[]): string[] {
+  const out = row.map((c) => (c ?? "").toString());
+  while (out.length < PROGRAM_COLS) out.push("");
+  return out.slice(0, PROGRAM_COLS);
+}
+
+/**
+ * Rebuilds a Program tab's body with one week+day's rows replaced by `rows`,
+ * keeping that day where it already sat and leaving every other row in place.
+ * Returns null when the day isn't there, so the caller can refuse rather than
+ * write. Pure, because getting this wrong overwrites a real program.
+ */
+export function spliceDayRows(
+  body: unknown[][],
+  week: string,
+  day: string,
+  rows: string[][]
+): { next: string[][]; replaced: number } | null {
+  const belongs = (row: unknown[]) => {
+    const r = padRow(row);
+    return r[0].trim() === week && r[1].trim() === day;
+  };
+
+  const next: string[][] = [];
+  let replaced = 0;
+  let inserted = false;
+  for (const row of body) {
+    if (belongs(row)) {
+      replaced += 1;
+      if (!inserted) {
+        next.push(...rows.map(padRow));
+        inserted = true;
+      }
+      continue;
+    }
+    next.push(padRow(row));
+  }
+  return inserted ? { next, replaced } : null;
+}
