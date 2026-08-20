@@ -36,8 +36,8 @@ export default async function CoachPage({
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight">Programming</h1>
       <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-        Write a day out in shorthand, or duplicate one you already wrote. Everything lands
-        in the Sheet, where you can still edit it by hand.
+        Two weeks at a glance. Write a day out in shorthand, or duplicate one you already
+        wrote — everything lands in the Sheet, where you can still edit it by hand.
       </p>
       <CoachPanel slug={slug} clients={clients} />
     </main>

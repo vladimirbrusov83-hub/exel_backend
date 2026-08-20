@@ -2,7 +2,8 @@
 
 Next.js 15 App Router, TypeScript, Tailwind 4, `googleapis`. One Google Sheet is the whole
 backend. Two clients read their program at `/program/<slug>` and leave a note per day;
-Vladimir copies days at `/coach/<COACH_SLUG>`. See `README.md` for the user-facing side.
+`/coach/<COACH_SLUG>` has three tabs: Calendar (two weeks side by side), Write a day
+(shorthand box), Copy a day. See `README.md` for the user-facing side.
 
 GitHub: `vladimirbrusov83-hub/exel_backend` (public). Deploy = commit + push; Vercel picks
 it up in ~30s. Never run `vercel --prod`.
@@ -71,6 +72,14 @@ If you touch the regex, run the existing cases: `Box squat`, `Leg extensions`,
 
 The browser and the server both parse — the preview is client-side, and the route re-parses
 the raw text rather than trusting rows from the browser.
+
+## The calendar
+
+`Calendar.tsx` shows `SPAN = 2` weeks as columns, paging in steps of `SPAN` from the end of
+the list. There are **no dates in the Sheet** — days are named `Day 1`, `Day 2` — so a
+weekday grid is not possible and was not what was asked for. Columns are a fixed 17rem and
+scroll horizontally inside their own container on a phone; they share the width from `sm` up.
+The page body itself must never scroll horizontally.
 
 ## Caching
 

@@ -7,7 +7,7 @@ no login, no accounts. Each client gets a private, unguessable URL.
 | Page | Who opens it |
 |---|---|
 | `/program/<client-slug>` | your client — their program, week by week, with a note box under each day |
-| `/coach/<coach-slug>` | you — write a day in shorthand, or copy one you already wrote |
+| `/coach/<coach-slug>` | you — two weeks side by side, plus writing and copying days |
 
 Access control is the slug and nothing else. Send each link privately and treat it like a
 password. The pages are `noindex`, so search engines won't find them. An unknown slug
@@ -86,7 +86,19 @@ of the three parts above isn't finished yet.
 
 ---
 
-## Writing a program
+## The coach page
+
+`/coach/<COACH_SLUG>` has three tabs.
+
+### Calendar
+
+Two weeks side by side, each showing its days as cards with every exercise and set —
+the same shape as the program itself. The arrows step back and forward two weeks at a
+time, starting on the latest two. On a phone the columns swipe sideways.
+
+It's a read-only view. To change something, use the other two tabs or edit the Sheet.
+
+### Write a day
 
 The fast way is the **Write a day** tab on `/coach/<COACH_SLUG>`. Type or paste a day the
 way you'd write it on paper:
@@ -166,9 +178,9 @@ Both styles can sit in the same program — main lifts set by set, accessories o
 Only *consecutive* rows group, so the same lift programmed again later in the session stays
 its own block. Leave the Sets column blank and the sets are just numbered 1, 2, 3.
 
-### Copying a day you already wrote
+### Copy a day
 
-Open `/coach/<COACH_SLUG>`. Pick a client, pick a day to copy, say which week it goes into
+Pick a client, pick a day to copy, say which week it goes into
 and what to call it, and hit **Copy day**. The whole day lands in the Program tab exactly
 as written; you then change the numbers in the Sheet.
 
