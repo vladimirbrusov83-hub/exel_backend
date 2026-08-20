@@ -67,7 +67,7 @@ export default function PasteDay({
   }
 
   const fieldClass =
-    "mt-2 block min-h-11 w-full rounded-lg border border-neutral-300 bg-white px-3 text-base dark:border-neutral-600 dark:bg-neutral-900";
+    "field mt-2 min-h-11 px-3 text-base";
   const labelClass =
     "text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400";
 
@@ -84,7 +84,7 @@ export default function PasteDay({
           rows={14}
           spellCheck={false}
           placeholder={PLACEHOLDER}
-          className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-3 font-mono text-sm leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-300"
+          className="field mt-2 p-3 font-mono text-sm leading-relaxed"
         />
         <span className="mt-2 block text-xs text-neutral-500 dark:text-neutral-400">
           One exercise per line, its sets underneath as <code>weight*reps</code>. Letters like{" "}

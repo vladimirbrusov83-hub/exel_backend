@@ -59,7 +59,7 @@ export default function DayEditor({
         rows={Math.min(24, text.split("\n").length + 2)}
         spellCheck={false}
         autoFocus
-        className="w-full rounded-lg border border-neutral-300 bg-white p-2 font-mono text-xs leading-relaxed text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-300"
+        className="field p-2 font-mono text-xs leading-relaxed"
       />
 
       <p className="text-xs text-neutral-500 dark:text-neutral-400">

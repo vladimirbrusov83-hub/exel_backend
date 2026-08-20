@@ -54,7 +54,7 @@ export default function NoteForm({
         }}
         rows={3}
         placeholder="Actual RPE, how the session went, anything I should know…"
-        className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-300"
+        className="field mt-2 p-3 text-base"
       />
       <div className="mt-2 flex items-center gap-3">
         <button
