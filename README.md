@@ -7,7 +7,7 @@ no login, no accounts. Each client gets a private, unguessable URL.
 | Page | Who opens it |
 |---|---|
 | `/program/<client-slug>` | your client — their program, week by week, with a note box under each day |
-| `/coach/<coach-slug>` | you — copy any training day into a new week or day |
+| `/coach/<coach-slug>` | you — write a day in shorthand, or copy one you already wrote |
 
 Access control is the slug and nothing else. Send each link privately and treat it like a
 password. The pages are `noindex`, so search engines won't find them. An unknown slug
@@ -88,6 +88,42 @@ of the three parts above isn't finished yet.
 
 ## Writing a program
 
+The fast way is the **Write a day** tab on `/coach/<COACH_SLUG>`. Type or paste a day the
+way you'd write it on paper:
+
+```
+Day 2
+A) Squat
+95*10
+115*6
+135*10
+135*10
+B) Military press
+b*10
+55*10
+55*10
+C) Leg curls
+70*12 @8
+```
+
+It shows you what it understood as you type, then **Add to Sheet** writes one row per set.
+
+- One exercise per line, its sets underneath as `weight*reps`.
+- The `A)` `B)` letters are optional and get stripped. `a.` and `B -` work too.
+- `x` works as well as `*` — `135x10`, `135 x 10`, `100 kg * 5` all parse.
+- Put `@8` (or `rpe 8`) on the end of a set line to set the RPE.
+- The load is copied exactly as written, so `b`, `BW` and `20kg` all survive.
+- A first line starting with "Day" becomes the day's name unless you type your own.
+- Anything it couldn't make sense of is called out above the preview before you write.
+
+The **Week** field is prefilled with the next week number, and offers your existing weeks
+as suggestions. If that week already has a day by that name it refuses rather than writing
+duplicates.
+
+Everything still lives in the Sheet, so you can always edit it there by hand.
+
+### Or type it into the Sheet directly
+
 One exercise per row. Repeat the week and day on every row:
 
 ```
@@ -130,7 +166,7 @@ Both styles can sit in the same program — main lifts set by set, accessories o
 Only *consecutive* rows group, so the same lift programmed again later in the session stays
 its own block. Leave the Sets column blank and the sets are just numbered 1, 2, 3.
 
-### Copying a day
+### Copying a day you already wrote
 
 Open `/coach/<COACH_SLUG>`. Pick a client, pick a day to copy, say which week it goes into
 and what to call it, and hit **Copy day**. The whole day lands in the Program tab exactly
@@ -178,13 +214,16 @@ app/program/[slug]/page.tsx      the client's program page (Server Component)
 app/program/[slug]/NoteForm.tsx  the note textarea and Save button
 app/program/[slug]/error.tsx     last-resort error screen
 app/coach/[slug]/page.tsx        the coach page shell
-app/coach/[slug]/CoachPanel.tsx  client / source day / destination pickers and preview
+app/coach/[slug]/CoachPanel.tsx  client picker, the two tabs, and the copy-a-day UI
+app/coach/[slug]/PasteDay.tsx    the shorthand box, live preview and Add to Sheet
 app/api/program/[slug]/route.ts  GET  program as JSON
 app/api/notes/[slug]/route.ts    POST a note
 app/api/coach/[slug]/route.ts    POST a day copy
+app/api/coach/paste/[slug]/route.ts  POST a day written in shorthand
 lib/sheets.ts                    every Google Sheets call, plus the 5-minute cache
 lib/program.ts                   pure Sheet rows -> Week / Day / Movement shaping
 lib/clients.ts                   slug -> tab prefix, and the coach slug check
+lib/parse.ts                     pure shorthand text -> exercises and sets
 lib/weeks.ts                     "Week 4" -> "Week 5"
 ```
 

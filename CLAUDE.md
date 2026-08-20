@@ -46,6 +46,32 @@ Reads use unbounded ranges (`A:G`, `A:D`) — the program has no fixed length.
   message, instead of being left to `error.tsx`. Keep it that way — the real message is
   how a setup problem gets diagnosed.
 
+## The shorthand parser
+
+`lib/parse.ts` turns the way Vladimir actually writes a day —
+
+```
+Day 2
+A) Squat
+95*10
+115*6
+```
+
+— into rows. It is pure and has no imports, so test it directly with
+`node --experimental-strip-types`. Two rules are load-bearing:
+
+- **The reps side of a set line must start with a digit.** Without that, "Leg extensions"
+  parses as load "Leg e" x reps "tensions".
+- **An `x` jammed against a letter is not a separator.** That's what keeps "Box squat" and
+  "Box 10" from being read as sets, while "135x10" and "102.5kg x 5" both are. The gap
+  between the load and the separator is captured for exactly this check.
+
+If you touch the regex, run the existing cases: `Box squat`, `Leg extensions`,
+`Cross body extension`, `b*10`, `100 kg * 5`, `BW*45s`, `25*12-15`, `80kg×8 rpe 7.5`.
+
+The browser and the server both parse — the preview is client-side, and the route re-parses
+the raw text rather than trusting rows from the browser.
+
 ## Caching
 
 `getProgram(prefix)` in `lib/sheets.ts` wraps the read in `unstable_cache` — 5 minute
