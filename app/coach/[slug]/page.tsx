@@ -34,9 +34,9 @@ export default async function CoachPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight">Build next week</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Copy a day</h1>
       <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-        Copies a week into the next one with the loads bumped. Fine-tune in the Sheet after.
+        Duplicates a training day exactly as written. Change the numbers in the Sheet after.
       </p>
       <CoachPanel slug={slug} clients={clients} />
     </main>

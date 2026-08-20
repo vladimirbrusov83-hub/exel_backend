@@ -6,10 +6,10 @@ database, no login. Each client gets a private, unguessable URL.
 
 ```
 /program/<client-slug>     the client's program, grouped Week -> Day, with a note box per day
-/coach/<coach-slug>        your page: copy a week into the next one with the loads bumped
+/coach/<coach-slug>        your page: copy any training day into a new week or day
 /api/program/<slug>  GET   the same program data as JSON (handy for debugging)
 /api/notes/<slug>    POST  { week, day, note } -> appends a row to that client's Notes tab
-/api/coach/<slug>    POST  { client, sourceWeek, bump } -> appends next week's rows
+/api/coach/<slug>    POST  { client, sourceWeek, sourceDay, targetWeek, targetDay }
 ```
 
 Access control is the slug and nothing else. Send the link privately; treat it like a
@@ -110,21 +110,19 @@ npm run build && npm start
 
 An unknown slug returns a plain 404 — it never hints that other slugs exist.
 
-## Building next week
+## Copying a day
 
-Open `/coach/<COACH_SLUG>` — your page, not a client's. Pick a client, pick the week to
-copy from, pick a load change, and it shows you every row before and after. Hit **Write**
-and the whole week lands in the Program tab; you then fine-tune numbers in the Sheet
-instead of retyping the structure.
+Open `/coach/<COACH_SLUG>` — your page, not a client's. Pick a client, pick a day to copy,
+say which week and day name it should become, and hit **Copy day**. The whole day lands in
+the Program tab exactly as written, and you change the numbers in the Sheet.
 
-- **Same / +2.5 / +5** add to the number in the Load cell and keep the units, so `100 kg`
-  becomes `105 kg`. **Deload −10%** multiplies and rounds to the nearest 2.5.
-- Cells with no number (`BW`, `bar`, `blue band`, empty) are copied unchanged.
-- Sets, reps and RPE are copied as-is, including set-by-set blocks.
-- The new week's name is the old one with its number advanced: `Week 4` becomes `Week 5`.
-  If that week already exists it refuses rather than writing duplicates — delete or rename
-  the existing one first.
-- The client sees the new week immediately; their 5-minute cache is cleared on write.
+- **Into week** offers every existing week plus *New week…*, prefilled with the next number
+  up (`Week 1` -> `Week 2`). **Called** is the day's name, prefilled from the day you copied.
+- Nothing is recalculated — loads, sets, reps and RPE copy across untouched, including
+  set-by-set blocks and cells like `BW` or `bar`.
+- If that week already has a day with that name it refuses rather than writing duplicates.
+  Pick a different name.
+- The client sees it immediately; their 5-minute cache is cleared on write.
 
 ## How caching works
 
