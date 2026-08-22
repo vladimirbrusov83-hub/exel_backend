@@ -1,9 +1,44 @@
-export default function Home() {
+import Link from "next/link";
+import { getClients } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const clients = await getClients();
+
   return (
-    <main className="mx-auto max-w-md px-4 py-24 text-center">
-      <p className="text-neutral-600 dark:text-neutral-400">
-        Nothing here. Use the personal link your coach sent you.
-      </p>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-8 p-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Who&apos;s training?</h1>
+        <p className="mt-1 text-neutral-600">
+          Tap your name to see this week.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {clients.map((c) => (
+          <Link
+            key={c.id}
+            href={`/c/${c.id}`}
+            className="flex min-h-16 items-center justify-between rounded-xl border border-neutral-300 px-5 text-lg font-medium transition-colors hover:bg-neutral-100"
+          >
+            {c.name}
+            <span aria-hidden className="text-neutral-400">›</span>
+          </Link>
+        ))}
+        {clients.length === 0 && (
+          <p className="text-neutral-600">
+            No one set up yet. Add names on the coach page.
+          </p>
+        )}
+      </div>
+
+      <Link
+        href="/coach"
+        className="inline-flex min-h-11 items-center self-start text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-800"
+      >
+        Coach
+      </Link>
     </main>
   );
 }

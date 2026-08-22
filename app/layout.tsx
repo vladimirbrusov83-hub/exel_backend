@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// The program URL is the credential, so nothing here should ever be crawled.
+// There is no login here on purpose, so nothing should ever be crawled.
 export const metadata: Metadata = {
   title: "Training program",
   robots: { index: false, follow: false },

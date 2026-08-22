@@ -1,262 +1,82 @@
 # ClientProgram
 
-Shows each coaching client their training program on their phone and lets them leave a
-short note after each session. **One Google Sheet is the entire backend** — no database,
-no login, no accounts. Each client gets a private, unguessable URL.
+You write the training. Two people open a link, tap their name, and see this week.
+No accounts, no passwords, no app to install.
 
-| Page | Who opens it |
-|---|---|
-| `/program/<client-slug>` | your client — their program, week by week, with a note box under each day |
-| `/coach/<coach-slug>` | you — two weeks side by side, plus writing and copying days |
-
-Access control is the slug and nothing else. Send each link privately and treat it like a
-password. The pages are `noindex`, so search engines won't find them. An unknown slug
-returns a plain 404 that gives nothing away.
-
----
+- **`/`** — two big name buttons. Send this link to both of them; it's the only one they need.
+- **`/c/<their id>`** — this week's sessions. `‹ ›` moves a week, **History** goes back
+  through everything you've written for them.
+- **`/c/<their id>/w/<workout>`** — the session itself: your notes at the top, then each
+  exercise with its sets. They can leave a note under any exercise and one for the whole
+  session, and tap **Mark as done**. Notes save when they tap out of the box.
+- **`/coach`** — your calendar. Behind one passcode you type once.
 
 ## Setting it up
 
-Three parts, once. Roughly 15 minutes.
+1. Make a Postgres database at [neon.tech](https://console.neon.tech) (the free plan is
+   plenty) and copy the **pooled** connection string.
+2. Create `.env.local` in this folder:
 
-### 1. The Google Sheet
+   ```
+   DATABASE_URL=postgresql://…            # from Neon
+   COACH_PASSCODE=whatever-you-like       # what you type at /coach/login
+   ```
 
-Create one Sheet with four tabs, named **exactly** like this — capital C, underscore,
-capital P and N:
+3. `npm install`
+4. `npm run db:push` — creates the tables and adds two people called "Client 1" and
+   "Client 2". Double-click a name on the coach page to rename them.
+5. `npm run dev`, open http://localhost:3000.
 
-| Tab | Row 1 headers |
-|---|---|
-| `Client1_Program` | Week, Day, Exercise, Sets, Reps, Load, RPE Target |
-| `Client1_Notes` | Timestamp, Week, Day, Note |
-| `Client2_Program` | Week, Day, Exercise, Sets, Reps, Load, RPE Target |
-| `Client2_Notes` | Timestamp, Week, Day, Note |
+For the live site, put the same two values into the Vercel project's Environment Variables
+**before** pushing, or the deploy will build and then error.
 
-Write one day into `Client1_Program` to start with. You never type in the Notes tabs —
-the app appends to those.
+## Using the coach page
 
-The Sheet ID is the long string in the Sheet's URL between `/d/` and `/edit`. You'll need
-it in part 3.
+**On a computer** you get a month-at-a-time calendar. Click any day to write a session;
+click an existing one to edit it. `‹ ›` jump a month, **Today** brings you back.
 
-### 2. Google Cloud
+**On a phone** you get one week at a time with an **+ Add** button on every day — you can
+write a whole session from the gym floor.
 
-This creates a robot account that reads and writes your Sheet on the app's behalf.
+### Writing a session
 
-1. <https://console.cloud.google.com> → create a project, call it `ClientProgram`.
-2. **APIs & Services → Library** → search *Google Sheets API* → **Enable**.
-3. **APIs & Services → Credentials → Create Credentials → Service account.**
-   Name it `sheets-writer`. Skip the optional role and access steps → **Done**.
-4. Click the new service account → **Keys → Add Key → Create new key → JSON**.
-   A `.json` file downloads. That is the only copy — keep it somewhere safe, and never
-   inside this repo.
-5. Open that JSON and copy the `client_email` value. It looks like
-   `sheets-writer@clientprogram-xxxxx.iam.gserviceaccount.com`.
-6. Open your Google Sheet → **Share** → paste that email → set it to **Editor** → Send.
-
-Step 6 is the one people forget. Enabling the API in step 2 does not give the robot
-account access to your Sheet; sharing the Sheet with it does. Both steps are required.
-
-### 3. Environment variables
-
-Fill in `.env.local` for local use, and add the same six in
-**Vercel → Project → Settings → Environment Variables** for the live site.
-
-| Variable | Where it comes from |
-|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` from the JSON key |
-| `GOOGLE_PRIVATE_KEY` | `private_key` from the JSON key — paste it exactly as it appears, keep the `\n` sequences, wrap the whole thing in double quotes |
-| `SHEET_ID` | the id from the Sheet's URL |
-| `CLIENT_1_SLUG` | a long random string — becomes client 1's link |
-| `CLIENT_2_SLUG` | the same, for client 2 |
-| `COACH_SLUG` | the same again — this one is *your* page, keep it to yourself |
-
-Generate a slug with `openssl rand -hex 12`.
-
-The private key genuinely contains literal `\n` characters when it lives in an env var,
-and the app turns them back into real newlines. Don't "fix" them by hand.
-
-### Run it
-
-```bash
-npm run dev                       # then open /program/<CLIENT_1_SLUG>
-npm run build && npm start        # production build
-```
-
-If the page says *"Couldn't load your program"*, the message underneath tells you which
-of the three parts above isn't finished yet.
-
----
-
-## The coach page
-
-`/coach/<COACH_SLUG>` has three tabs.
-
-### Calendar
-
-Two weeks side by side, each showing its days as cards with every exercise and set —
-the same shape as the program itself. The arrows step back and forward two weeks at a
-time, starting on the latest two. On a phone the columns swipe sideways.
-
-Each day card has an **Edit** link. It opens that day in the same shorthand you write in,
-already filled in:
+Give it a name (or leave it — it'll be called "Tuesday Session"), add a note if you want
+one, then add exercises. Each exercise is a name box with a free text area under it where
+you type the sets however you write them:
 
 ```
-A) Bench press
-50*12
-60*10
-B) DL
-100*12
-```
-
-Change whatever you like — weights, reps, exercise names, add or remove exercises — and
-**Save**. That day's rows in the Sheet are replaced in place; every other day is untouched
-and stays in the same order. Cancel throws the changes away.
-
-Clearing the whole box doesn't delete the day — it refuses, because that's more likely a
-mistake than an intent. To remove a day entirely, delete its rows in the Sheet.
-
-### Write a day
-
-The fast way is the **Write a day** tab on `/coach/<COACH_SLUG>`. Type or paste a day the
-way you'd write it on paper:
-
-```
-Day 2
-A) Squat
 95*10
 115*6
 135*10
-135*10
-B) Military press
-b*10
-55*10
-55*10
-C) Leg curls
-70*12 @8
 ```
 
-It shows you what it understood as you type, then **Add to Sheet** writes one row per set.
+**Nothing is treated as a number.** `b*10`, `BW*45s`, `100 kg * 5`, `25*12-15` all come
+back exactly as you typed them.
 
-- One exercise per line, its sets underneath as `weight*reps`.
-- The `A)` `B)` letters are optional and get stripped. `a.` and `B -` work too.
-- `x` works as well as `*` — `135x10`, `135 x 10`, `100 kg * 5` all parse.
-- Put `@8` (or `rpe 8`) on the end of a set line to set the RPE.
-- The load is copied exactly as written, so `b`, `BW` and `20kg` all survive.
-- A first line starting with "Day" becomes the day's name unless you type your own.
-- Anything it couldn't make sense of is called out above the preview before you write.
+### Supersets
 
-The **Week** field is prefilled with the next week number, and offers your existing weeks
-as suggestions. If that week already has a day by that name it refuses rather than writing
-duplicates.
+Between every two exercises there's a **⚡ Superset** button. Tap it and the two are
+joined: they turn blue and are relabelled `A1)` and `A2)`. Tap a third one below to make it
+`A3)`. Tap again to unlink.
 
-Everything still lives in the Sheet, so you can always edit it there by hand.
+The letters look after themselves — you never type them.
 
-### Or type it into the Sheet directly
+**Escape and ⌘/Ctrl+Enter both save and close.** There is no cancel — if you open a session
+and change something, it's saved. Emptying the editor won't delete a session; use Delete.
 
-One exercise per row. Repeat the week and day on every row:
+### Copying a session
 
-```
-Week 1 | Day 1 — Lower | Back squat        | 4 | 5    | 100 kg | 7
-Week 1 | Day 1 — Lower | Romanian deadlift | 3 | 8    | 80 kg  | 8
-Week 1 | Day 1 — Lower | Plank             | 3 | 45 s | BW     |
-Week 1 | Day 2 — Upper | Bench press       | 5 | 5    | 70 kg  | 7
-```
+Tap **📋** on any session, then tap the day you want it on. **↕️** moves it instead of
+copying.
 
-Blank cells are fine. Blank rows are skipped. Weeks are ordered by the number in them, so
-`Week 10` correctly follows `Week 9`, and days appear in whatever order you put them in.
+You can copy to the *other person*: tap 📋, then tap their name at the top, then tap a day.
+The copy arrives clean — not marked done, and without the first person's notes.
 
-### Writing every set out
+### Seeing what they wrote
 
-Repeat the exercise name on consecutive rows and use the **Sets** column as the set
-number. Those rows merge into one block:
+Their notes show up right on the calendar block with a 👤, and in full when you open the
+session. You don't have to go looking.
 
-```
-Week 1 | Day 1 — Upper | Bench press  | 1 |  6 | 50 kg  | 6
-Week 1 | Day 1 — Upper | Bench press  | 2 |  5 | 60 kg  | 7
-Week 1 | Day 1 — Upper | Bench press  | 3 | 10 | 90 kg  | 8
-Week 1 | Day 1 — Upper | Bench press  | 4 |  6 | 100 kg | 9
-Week 1 | Day 1 — Upper | Lat pulldown | 3 | 12 | 60 kg  | 8
-```
+## Deploying
 
-reads on the phone as:
-
-```
-Bench press
-  1   50 kg × 6    RPE 6
-  2   60 kg × 5    RPE 7
-  3   90 kg × 10   RPE 8
-  4  100 kg × 6    RPE 9
-
-Lat pulldown
-  3 × 12   Load: 60 kg   RPE 8
-```
-
-Both styles can sit in the same program — main lifts set by set, accessories on one line.
-Only *consecutive* rows group, so the same lift programmed again later in the session stays
-its own block. Leave the Sets column blank and the sets are just numbered 1, 2, 3.
-
-### Copy a day
-
-Pick a client, pick a day to copy, say which week it goes into
-and what to call it, and hit **Copy day**. The whole day lands in the Program tab exactly
-as written; you then change the numbers in the Sheet.
-
-- **Into week** lists your existing weeks plus *New week…*, prefilled with the next number
-  up. **Called** is prefilled with the name of the day you copied. So "same day, next week"
-  is two taps.
-- Nothing is recalculated. Loads, sets, reps and RPE copy across untouched, including
-  set-by-set blocks and cells like `BW` or `bar`.
-- If that week already has a day with that name it refuses rather than writing duplicates.
-  Pick a different name.
-- Your client sees it straight away.
-
-### Notes from clients
-
-Each day on the client's page has a note box — how the session felt, actual RPE, whatever
-they want to tell you, up to 500 characters. Saving appends a row to their `_Notes` tab
-with a timestamp. Notes are not shown back to the client, and never appear in the app;
-read them in the Sheet.
-
----
-
-## Good to know
-
-**Changes take up to 5 minutes.** Program data is cached for 5 minutes so the app isn't
-hammering the Google API. Edit the Sheet and give it a moment. A day copied from the coach
-page appears immediately.
-
-**Adding a third client.** Add a `Client3_Program` / `Client3_Notes` pair of tabs, a
-`CLIENT_3_SLUG` env var, and one line in `lib/clients.ts`. Nothing else changes.
-
-**Deploying.** `git push` — Vercel picks it up in about 30 seconds. Environment variables
-have to be set in the Vercel dashboard separately from `.env.local`.
-
-**If a client's link stops working.** Check that `.env.local` (or Vercel) still has their
-slug, and that the Sheet is still shared with the service-account email.
-
----
-
-## For developers
-
-```
-app/program/[slug]/page.tsx      the client's program page (Server Component)
-app/program/[slug]/NoteForm.tsx  the note textarea and Save button
-app/program/[slug]/error.tsx     last-resort error screen
-app/coach/[slug]/page.tsx        the coach page shell
-app/coach/[slug]/CoachPanel.tsx  client picker, the two tabs, and the copy-a-day UI
-app/coach/[slug]/PasteDay.tsx    the shorthand box, live preview and Add to Sheet
-app/coach/[slug]/Calendar.tsx    two weeks side by side, with per-day Edit
-app/coach/[slug]/DayEditor.tsx   inline editor that replaces one day
-app/api/program/[slug]/route.ts  GET  program as JSON
-app/api/notes/[slug]/route.ts    POST a note
-app/api/coach/[slug]/route.ts    POST a day copy
-app/api/coach/paste/[slug]/route.ts  POST a day written in shorthand
-app/api/coach/edit/[slug]/route.ts   POST a replacement for an existing day
-lib/sheets.ts                    every Google Sheets call, plus the 5-minute cache
-lib/program.ts                   pure Sheet rows -> Week / Day / Movement shaping
-lib/clients.ts                   slug -> tab prefix, and the coach slug check
-lib/parse.ts                     pure shorthand text -> exercises and sets
-lib/weeks.ts                     "Week 4" -> "Week 5"
-```
-
-Next.js 15 (App Router), TypeScript, Tailwind 4, `googleapis`. No database client, no
-state library, no test runner. `CLAUDE.md` has the working notes and the traps.
+`git add . && git commit && git push`. Vercel picks it up in about 30 seconds.

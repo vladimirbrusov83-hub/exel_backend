@@ -1,0 +1,251 @@
+import { neon } from "@neondatabase/serverless";
+import type { Client, Exercise, Workout } from "./types";
+
+type Neon = ReturnType<typeof neon>;
+let client: Neon | undefined;
+
+/**
+ * Built on first query, not at import time. `next build` loads every route
+ * module even though they are all force-dynamic, so connecting at import would
+ * make the build fail on a machine that has no DATABASE_URL.
+ */
+function connect(): Neon {
+  if (!client) {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL is not set — see .env.example");
+    client = neon(url);
+  }
+  return client;
+}
+
+export const sql = new Proxy((() => {}) as unknown as Neon, {
+  apply: (_t, _this, args) => Reflect.apply(connect() as never, undefined, args),
+  get: (_t, prop) => Reflect.get(connect() as never, prop),
+});
+
+/* ---------------------------------------------------------------- clients */
+
+export async function getClients(): Promise<Client[]> {
+  const rows = await sql`
+    SELECT id, name, position FROM clients ORDER BY position, name`;
+  return rows as Client[];
+}
+
+export async function getClient(id: string): Promise<Client | null> {
+  const rows = (await sql`
+    SELECT id, name, position FROM clients WHERE id = ${id}`) as Client[];
+  return rows[0] ?? null;
+}
+
+export async function renameClient(id: string, name: string): Promise<void> {
+  await sql`UPDATE clients SET name = ${name} WHERE id = ${id}`;
+}
+
+/* --------------------------------------------------------------- workouts */
+
+type WorkoutRow = {
+  id: string; client_id: string; date: string; title: string;
+  coach_note: string; done: boolean;
+};
+
+/**
+ * Loads whole workouts — exercises, sets and client notes included — in four
+ * queries regardless of how many workouts match. `date` is cast to text in SQL
+ * so the driver hands back "2026-08-21" rather than a timezone-shifted Date.
+ */
+async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
+  if (workoutRows.length === 0) return [];
+  const ids = workoutRows.map((w) => w.id);
+
+  const exRows = (await sql`
+    SELECT id, workout_id, position, name, free_text, link_prev
+      FROM exercises WHERE workout_id = ANY(${ids}::uuid[])
+     ORDER BY workout_id, position`) as {
+    id: string; workout_id: string; position: number; name: string;
+    free_text: string; link_prev: boolean;
+  }[];
+
+  const noteRows = (await sql`
+    SELECT workout_id, exercise_id, body
+      FROM client_notes WHERE workout_id = ANY(${ids}::uuid[])`) as {
+    workout_id: string; exercise_id: string | null; body: string;
+  }[];
+
+  const exByWorkout = new Map<string, Exercise[]>();
+  for (const e of exRows) {
+    const list = exByWorkout.get(e.workout_id) ?? [];
+    list.push({
+      id: e.id, position: e.position, name: e.name,
+      freeText: e.free_text, linkPrev: e.link_prev,
+    });
+    exByWorkout.set(e.workout_id, list);
+  }
+
+  const notesByWorkout = new Map<string, { ex: Record<string, string>; overall: string }>();
+  for (const n of noteRows) {
+    const entry = notesByWorkout.get(n.workout_id) ?? { ex: {}, overall: "" };
+    if (n.exercise_id) entry.ex[n.exercise_id] = n.body;
+    else entry.overall = n.body;
+    notesByWorkout.set(n.workout_id, entry);
+  }
+
+  return workoutRows.map((w) => {
+    const notes = notesByWorkout.get(w.id) ?? { ex: {}, overall: "" };
+    return {
+      id: w.id, clientId: w.client_id, date: w.date, title: w.title,
+      coachNote: w.coach_note, done: w.done,
+      exercises: exByWorkout.get(w.id) ?? [],
+      notes: notes.ex, overallNote: notes.overall,
+    };
+  });
+}
+
+export async function getWorkoutsBetween(
+  clientId: string, from: string, to: string,
+): Promise<Workout[]> {
+  const rows = (await sql`
+    SELECT id, client_id, date::text AS date, title, coach_note, done
+      FROM workouts
+     WHERE client_id = ${clientId} AND date >= ${from} AND date <= ${to}
+     ORDER BY date, created_at`) as WorkoutRow[];
+  return hydrate(rows);
+}
+
+export async function getAllWorkouts(clientId: string): Promise<Workout[]> {
+  const rows = (await sql`
+    SELECT id, client_id, date::text AS date, title, coach_note, done
+      FROM workouts WHERE client_id = ${clientId}
+     ORDER BY date, created_at`) as WorkoutRow[];
+  return hydrate(rows);
+}
+
+export async function getWorkout(id: string): Promise<Workout | null> {
+  const rows = (await sql`
+    SELECT id, client_id, date::text AS date, title, coach_note, done
+      FROM workouts WHERE id = ${id}`) as WorkoutRow[];
+  return (await hydrate(rows))[0] ?? null;
+}
+
+/* ----------------------------------------------------------------- writes */
+
+/**
+ * Saves a whole workout. Parsing happens in the server action that calls this
+ * (never in the browser); this function only talks to the database.
+ *
+ * An exercise that already exists keeps its id, so the client's note stays
+ * attached to it. Existing exercises are matched **by name**, case-insensitively
+ * — position would be wrong the moment you insert an exercise above another,
+ * and matching leftovers by position would silently move someone's note onto a
+ * different lift. The honest trade: rename an exercise and its note goes with
+ * the old name.
+ *
+ * Ids are generated with crypto.randomUUID() rather than by the database so the
+ * whole save fits in one sql.transaction([...]) with no round-trips in between.
+ */
+export type WorkoutInput = {
+  id: string | null;
+  clientId: string;
+  date: string;
+  title: string;
+  coachNote: string;
+  exercises: { name: string; freeText: string; linkPrev: boolean }[];
+};
+
+export async function saveWorkout(draft: WorkoutInput): Promise<string> {
+  const parsed = draft.exercises.filter((e) => e.name.trim() !== "");
+  if (parsed.length === 0) throw new Error("A workout needs at least one exercise.");
+
+  const workoutId = draft.id ?? crypto.randomUUID();
+  const existing = draft.id ? ((await getWorkout(workoutId))?.exercises ?? []) : [];
+  const byName = new Map(existing.map((e) => [e.name.trim().toLowerCase(), e]));
+
+  const statements = [];
+  if (draft.id) {
+    statements.push(sql`
+      UPDATE workouts SET date = ${draft.date}, title = ${draft.title},
+             coach_note = ${draft.coachNote}
+       WHERE id = ${workoutId}`);
+  } else {
+    statements.push(sql`
+      INSERT INTO workouts (id, client_id, date, title, coach_note)
+      VALUES (${workoutId}, ${draft.clientId}, ${draft.date}, ${draft.title}, ${draft.coachNote})`);
+  }
+
+  const keptIds: string[] = [];
+  parsed.forEach((ex, i) => {
+    const match = byName.get(ex.name.trim().toLowerCase());
+    if (match) byName.delete(ex.name.trim().toLowerCase());
+    const exId = match?.id ?? crypto.randomUUID();
+    keptIds.push(exId);
+    if (match) {
+      statements.push(sql`
+        UPDATE exercises
+           SET position = ${i}, name = ${ex.name}, free_text = ${ex.freeText},
+               link_prev = ${i > 0 && ex.linkPrev}
+         WHERE id = ${exId} AND workout_id = ${workoutId}`);
+    } else {
+      statements.push(sql`
+        INSERT INTO exercises (id, workout_id, position, name, free_text, link_prev)
+        VALUES (${exId}, ${workoutId}, ${i}, ${ex.name}, ${ex.freeText},
+                ${i > 0 && ex.linkPrev})`);
+    }
+  });
+
+  // Exercises the day no longer contains. Their client notes go with them,
+  // which is what deleting an exercise should mean.
+  statements.push(sql`
+    DELETE FROM exercises
+     WHERE workout_id = ${workoutId} AND NOT (id = ANY(${keptIds}::uuid[]))`);
+
+  await sql.transaction(statements);
+  return workoutId;
+}
+
+export async function moveWorkout(id: string, date: string, clientId: string): Promise<void> {
+  await sql`UPDATE workouts SET date = ${date}, client_id = ${clientId} WHERE id = ${id}`;
+}
+
+/**
+ * Copies a workout onto another date, and optionally another client. The copy
+ * starts clean: not done, and without the notes the other person wrote.
+ */
+export async function copyWorkout(
+  id: string, date: string, clientId: string,
+): Promise<string | null> {
+  const src = await getWorkout(id);
+  if (!src) return null;
+  return saveWorkout({
+    id: null, clientId, date, title: src.title, coachNote: src.coachNote,
+    exercises: src.exercises.map((e) => ({
+      name: e.name, freeText: e.freeText, linkPrev: e.linkPrev,
+    })),
+  });
+}
+
+export async function deleteWorkout(id: string): Promise<void> {
+  await sql`DELETE FROM workouts WHERE id = ${id}`;
+}
+
+export async function setDone(id: string, done: boolean): Promise<void> {
+  await sql`UPDATE workouts SET done = ${done} WHERE id = ${id}`;
+}
+
+/**
+ * Upsert one client note. `exerciseId` null means the overall session note.
+ *
+ * Delete-then-insert in one transaction rather than ON CONFLICT: inferring a
+ * *partial* unique index from an ON CONFLICT target is easy to get subtly
+ * wrong, and every note the clients write goes through this one function.
+ * `IS NOT DISTINCT FROM` is what makes the NULL (overall-note) case match.
+ */
+export async function saveClientNote(
+  workoutId: string, exerciseId: string | null, body: string,
+): Promise<void> {
+  await sql.transaction([
+    sql`DELETE FROM client_notes
+         WHERE workout_id = ${workoutId}
+           AND exercise_id IS NOT DISTINCT FROM ${exerciseId}::uuid`,
+    sql`INSERT INTO client_notes (workout_id, exercise_id, body)
+        VALUES (${workoutId}, ${exerciseId}::uuid, ${body})`,
+  ]);
+}

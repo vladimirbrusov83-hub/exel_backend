@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  /* Tells the browser which way to paint form controls, scrollbars and the
-     caret. Without it, a text field in dark mode gets a light UA background
-     while the text on it follows the dark theme — white on white. */
+  /* Light only, on purpose — the app is white whatever the phone is set to.
+     `color-scheme` stops the browser painting form controls, scrollbars and
+     the caret dark on a device in dark mode. */
   color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
@@ -18,24 +18,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --field-bg: #171717;
-    --field-border: #404040;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Geist is loaded in layout.tsx and mapped to --font-sans in @theme above.
+     This used to say Arial, so the font was downloaded and never displayed. */
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
 /* Every text field, textarea and select. Written in plain CSS against the theme
-   tokens rather than as dark: utility pairs, so the text can never end up the
+   tokens rather than as Tailwind utilities, so the text can never end up the
    same colour as the box it sits in. */
 .field {
   display: block;
