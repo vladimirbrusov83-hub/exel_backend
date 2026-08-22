@@ -41,6 +41,15 @@ body {
   outline: none;
   border-color: var(--foreground);
 }
+/* The coach writing on the client page. A modifier class rather than Tailwind
+   `border-amber-400 bg-amber-50` utilities: .field is plain CSS declared after
+   the Tailwind import, so at equal specificity it wins and the utilities would
+   do nothing. */
+.field-coach {
+  border-color: #fbbf24;          /* amber-400 */
+  background-color: #fffbeb;      /* amber-50  */
+}
+
 .field::placeholder {
   color: color-mix(in srgb, var(--foreground) 45%, transparent);
 }

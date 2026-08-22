@@ -6,16 +6,110 @@ import { exerciseLabels, type Workout, type WorkoutDraft } from "@/lib/types";
 
 type Row = { name: string; freeText: string; linkPrev: boolean };
 
+/** Anything written on the day, by either of them. */
+function hasNotes(w: Workout): boolean {
+  return Boolean(
+    w.overallNote || w.overallCoachNote ||
+    Object.keys(w.notes).length > 0 || Object.keys(w.coachNotes).length > 0,
+  );
+}
+
+/** The notes on one day: the client's in blue, the coach's in amber. */
+function NoteLines({ workout }: { workout: Workout }) {
+  return (
+    <>
+      {workout.exercises.map((e) => (
+        <div key={e.id}>
+          {workout.notes[e.id] && (
+            <p className="mt-1 whitespace-pre-line text-blue-800">
+              <span className="text-neutral-500">{e.name}: </span>
+              {workout.notes[e.id]}
+            </p>
+          )}
+          {workout.coachNotes[e.id] && (
+            <p className="mt-1 whitespace-pre-line text-amber-800">
+              <span className="text-neutral-500">{e.name}: </span>
+              {workout.coachNotes[e.id]}
+            </p>
+          )}
+        </div>
+      ))}
+      {workout.overallNote && (
+        <p className="mt-2 whitespace-pre-line text-blue-800">{workout.overallNote}</p>
+      )}
+      {workout.overallCoachNote && (
+        <p className="mt-2 whitespace-pre-line text-amber-800">{workout.overallCoachNote}</p>
+      )}
+    </>
+  );
+}
+
+/**
+ * One past session, exactly as it was written. Read-only on purpose — this
+ * panel exists to be looked at while programming, not to be edited or compared.
+ */
+function PastDay({ workout }: { workout: Workout }) {
+  const labels = exerciseLabels(workout.exercises);
+  return (
+    <article className="rounded-lg border border-neutral-200 p-2">
+      <h4 className="flex items-baseline gap-2">
+        <span className="text-xs font-semibold">{workout.title || "Session"}</span>
+        <span className="ml-auto text-[11px] text-neutral-400">{formatLong(workout.date)}</span>
+      </h4>
+      {workout.coachNote && (
+        <p className="mt-1 whitespace-pre-line text-[11px] text-amber-700">{workout.coachNote}</p>
+      )}
+      {workout.exercises.map((ex, i) => (
+        <div key={ex.id} className="mt-1">
+          <p className={`text-xs font-semibold ${labels[i].superset ? "text-blue-600" : ""}`}>
+            {labels[i].label}) {ex.name}
+          </p>
+          {ex.freeText.trim() && (
+            <p className="whitespace-pre-line pl-2 font-mono text-[11px] leading-tight text-neutral-500">
+              {ex.freeText}
+            </p>
+          )}
+          {workout.notes[ex.id] && (
+            <p className="whitespace-pre-line pl-2 text-[11px] text-blue-800">
+              {workout.notes[ex.id]}
+            </p>
+          )}
+          {workout.coachNotes[ex.id] && (
+            <p className="whitespace-pre-line pl-2 text-[11px] text-amber-800">
+              {workout.coachNotes[ex.id]}
+            </p>
+          )}
+        </div>
+      ))}
+      {workout.overallNote && (
+        <p className="mt-2 whitespace-pre-line text-[11px] text-blue-800">{workout.overallNote}</p>
+      )}
+      {workout.overallCoachNote && (
+        <p className="mt-1 whitespace-pre-line text-[11px] text-amber-800">
+          {workout.overallCoachNote}
+        </p>
+      )}
+    </article>
+  );
+}
+
 const blankRow = (): Row => ({ name: "", freeText: "", linkPrev: false });
 
 const WEEKDAY_TITLE = (date: string) => `${formatLong(date).split(",")[0]} Session`;
 
 export default function WorkoutEditor({
-  clientId, date, workout, variant, align = "left", onClose, onSave, onDelete,
+  clientId, date, workout, history, variant, align = "left", onClose, onSave, onDelete,
 }: {
   clientId: string;
   date: string;
   workout: Workout | null;
+  /**
+   * This person's earlier sessions, newest first — display only. It is here so
+   * the last few days and everything written on them are readable while
+   * programming, without closing the editor. Nothing compares them to what is
+   * being typed: no deltas, no "last time", no suggested loads.
+   */
+  history: Workout[];
   /**
    * "popover" sits inside its own day cell on the calendar, the way CoachSpace
    * does it. "sheet" is the fullscreen version used on a phone.
@@ -191,24 +285,53 @@ export default function WorkoutEditor({
         className="mt-3 min-h-12 w-full rounded-xl border border-dashed border-neutral-400 text-sm"
       >+ exercise</button>
 
-      {workout && (workout.overallNote || Object.keys(workout.notes).length > 0) && (
-        <section className="mt-4 rounded-xl bg-blue-50 p-3 text-sm">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-blue-800">
-            What they wrote
+      {workout && hasNotes(workout) && (
+        <section className="mt-4 rounded-xl bg-neutral-50 p-3 text-sm">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            Notes on this day
           </h3>
-          {workout.exercises.map((e) =>
-            workout.notes[e.id] ? (
-              <p key={e.id} className="mt-1 whitespace-pre-line">
-                <span className="text-neutral-500">{e.name}: </span>
-                {workout.notes[e.id]}
-              </p>
-            ) : null)}
-          {workout.overallNote && (
-            <p className="mt-2 whitespace-pre-line">{workout.overallNote}</p>
-          )}
+          {/* Blue is theirs, amber is yours — including the ones you wrote from
+              the client view on your phone, which would otherwise look lost. */}
+          <NoteLines workout={workout} />
         </section>
       )}
+
+      {/* On a phone the panel would not fit beside the editor, so it folds in
+          underneath instead. Closed by default — the phone is for writing the
+          day, the laptop is where the history is read. */}
+      {variant === "sheet" && history.length > 0 && (
+        <details className="mt-4 rounded-xl border border-neutral-200">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 p-3 text-sm text-neutral-600">
+            <span className="chev text-neutral-400">›</span>
+            Previous sessions
+          </summary>
+          <div className="flex flex-col gap-2 border-t border-neutral-200 p-2">
+            {history.map((h) => <PastDay key={h.id} workout={h} />)}
+          </div>
+        </details>
+      )}
     </div>
+  );
+
+  // The side panel on a laptop: the sessions before this one, most recent
+  // first, always open. Hidden below xl, and xl rather than lg for a measured
+  // reason: at 1024 the Thursday column pushes the panel 17px past the calendar
+  // scroller, which has overflow-y:auto and therefore clips and scrolls in x too
+  // — an overflow the document never sees. Measure `scrollWidth - clientWidth`
+  // on the scroller, not on documentElement, if this width is ever changed.
+  const past = (
+    <aside className="hidden w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-neutral-300 bg-[var(--background)] shadow-xl xl:flex">
+      <h3 className="border-b border-neutral-200 p-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+        Previous sessions
+      </h3>
+      <div className="flex flex-col gap-2 overflow-y-auto p-2">
+        {history.length === 0 ? (
+          <p className="p-2 text-xs text-neutral-400">Nothing before this day.</p>
+        ) : (
+          history.map((h) => <PastDay key={h.id} workout={h} />)
+        )}
+      </div>
+    </aside>
   );
 
   const footer = (
@@ -243,13 +366,20 @@ export default function WorkoutEditor({
         // fold; nudge the calendar so the whole panel is reachable.
         ref={(el) => { el?.scrollIntoView({ block: "nearest" }); }}
         onClick={(e) => e.stopPropagation()}
-        className={`absolute top-0 z-50 flex max-h-[70vh] w-[21rem] flex-col overflow-hidden rounded-xl border-2 border-[#ea6c00] bg-[var(--background)] shadow-xl ${
-          align === "right" ? "right-0" : "left-0"
+        // The row is editor + history. `align` decides which edge it hangs off,
+        // and `flex-row-reverse` keeps the editor itself against that edge, so
+        // the history panel always grows towards the middle of the screen
+        // rather than off it.
+        className={`absolute top-0 z-50 flex max-h-[70vh] items-stretch gap-2 ${
+          align === "right" ? "right-0 flex-row" : "left-0 flex-row-reverse"
         }`}
       >
-        {header}
-        {body}
-        {footer}
+        {past}
+        <div className="flex w-[21rem] shrink-0 flex-col overflow-hidden rounded-xl border-2 border-[#ea6c00] bg-[var(--background)] shadow-xl">
+          {header}
+          {body}
+          {footer}
+        </div>
       </div>
     );
   }

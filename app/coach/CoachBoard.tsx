@@ -67,6 +67,15 @@ export default function CoachBoard({
 
   const refresh = () => startTransition(() => router.refresh());
 
+  /**
+   * What the editor shows in its "Previous sessions" panel: this person's last
+   * few days before the one being edited, newest first. `workouts` is already
+   * this client only and sorted by date, so this is a slice, not a fetch.
+   */
+  const HISTORY_DAYS = 6;
+  const historyFor = (date: string) =>
+    workouts.filter((w) => w.date < date).slice(-HISTORY_DAYS).reverse();
+
   /* Desktop calendar opens on today. */
   useEffect(() => {
     const el = scroller.current?.querySelector(`[data-date="${today()}"]`);
@@ -206,9 +215,9 @@ export default function CoachBoard({
           </span>
         ))}
 
-        {w.coachNote && (
+        {(w.coachNote || w.overallCoachNote || Object.keys(w.coachNotes).length > 0) && (
           <span className="mt-1 block text-xs text-amber-700">
-            📝 {w.coachNote}
+            📝 {w.coachNote || w.overallCoachNote || "your notes"}
           </span>
         )}
         {(w.overallNote || Object.keys(w.notes).length > 0) && (
@@ -345,6 +354,7 @@ export default function CoachBoard({
                       clientId={clientId}
                       date={editor.date}
                       workout={editor.workout}
+                      history={historyFor(editor.date)}
                       variant="popover"
                       // Fri/Sat/Sun hang off the right edge or they run off screen.
                       align={i % 7 >= 4 ? "right" : "left"}
@@ -405,6 +415,7 @@ export default function CoachBoard({
           clientId={clientId}
           date={editor.date}
           workout={editor.workout}
+          history={historyFor(editor.date)}
           variant="sheet"
           onClose={() => setEditor(null)}
           onSave={save}

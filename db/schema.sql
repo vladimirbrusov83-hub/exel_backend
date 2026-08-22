@@ -44,21 +44,36 @@ CREATE TABLE IF NOT EXISTS exercises (
 CREATE INDEX IF NOT EXISTS exercises_workout_idx ON exercises (workout_id, position);
 
 -- exercise_id NULL means "the workout's overall note".
+--
+-- `author` is why this table is not just "the client's notes" any more: the
+-- coach can open the client view on his phone and write on the same exercise.
+-- One row per (workout, exercise, author), so the two never overwrite each
+-- other. The value is decided server-side — the public action hardcodes
+-- 'client', the coach action is behind requireCoach() — never sent by a browser.
 CREATE TABLE IF NOT EXISTS client_notes (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workout_id   uuid NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
   exercise_id  uuid REFERENCES exercises(id) ON DELETE CASCADE,
+  author       text NOT NULL DEFAULT 'client' CHECK (author IN ('client', 'coach')),
   body         text NOT NULL DEFAULT '',
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE client_notes ADD COLUMN IF NOT EXISTS author text NOT NULL DEFAULT 'client';
 
 -- Two indexes, not one. In Postgres NULL <> NULL, so a plain
 -- UNIQUE (workout_id, exercise_id) does NOT stop the overall note being
 -- inserted twice — blur the box twice and you would get duplicates.
-CREATE UNIQUE INDEX IF NOT EXISTS client_notes_ex_uniq
-  ON client_notes (workout_id, exercise_id) WHERE exercise_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS client_notes_overall_uniq
-  ON client_notes (workout_id) WHERE exercise_id IS NULL;
+--
+-- Both are dropped by their old names first. IF NOT EXISTS matches on the index
+-- NAME, so on a database created before `author` the old two-column index would
+-- survive this file untouched, and the coach's first note on an exercise the
+-- client had already written on would fail with a unique violation.
+DROP INDEX IF EXISTS client_notes_ex_uniq;
+DROP INDEX IF EXISTS client_notes_overall_uniq;
+CREATE UNIQUE INDEX IF NOT EXISTS client_notes_ex_author_uniq
+  ON client_notes (workout_id, exercise_id, author) WHERE exercise_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS client_notes_overall_author_uniq
+  ON client_notes (workout_id, author) WHERE exercise_id IS NULL;
 
 -- Migrations for databases created before the free-text editor. Both are
 -- no-ops on a fresh database.

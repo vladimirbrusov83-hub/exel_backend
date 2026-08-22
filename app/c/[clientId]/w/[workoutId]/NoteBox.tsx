@@ -1,31 +1,40 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { saveNote } from "../../actions";
+import { saveCoachNote, saveNote } from "../../actions";
 
 /**
  * Saves on blur, not on every keystroke. `saved` clears itself so the label
  * doesn't sit there claiming success five minutes later.
+ *
+ * `tone` picks both the colour and the server action. Blue is the client
+ * writing about their own session; amber is the coach writing on the client
+ * page from his phone — the same two colours the coach calendar already uses
+ * for 👤 and 📝. The author is decided inside the action, not sent from here.
  */
 export default function NoteBox({
-  workoutId, exerciseId, initial, label, placeholder,
+  workoutId, exerciseId, initial, label, placeholder, tone = "client",
 }: {
   workoutId: string;
   exerciseId: string | null;
   initial: string;
   label: string;
   placeholder?: string;
+  tone?: "client" | "coach";
 }) {
   const [value, setValue] = useState(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const lastSaved = useRef(initial);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  const coach = tone === "coach";
+
   async function flush() {
     if (value === lastSaved.current) return;
     setState("saving");
     try {
-      await saveNote(workoutId, exerciseId, value);
+      if (coach) await saveCoachNote(workoutId, exerciseId, value);
+      else await saveNote(workoutId, exerciseId, value);
       lastSaved.current = value;
       setState("saved");
       clearTimeout(timer.current);
@@ -38,7 +47,9 @@ export default function NoteBox({
   return (
     <div className="mt-3">
       <div className="mb-1 flex items-baseline justify-between">
-        <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <label className={`text-xs font-medium uppercase tracking-wide ${
+          coach ? "text-amber-700" : "text-neutral-500"
+        }`}>
           {label}
         </label>
         <span className="text-xs" aria-live="polite">
@@ -48,7 +59,9 @@ export default function NoteBox({
         </span>
       </div>
       <textarea
-        className="field min-h-16 p-2 text-base"
+        className={`field min-h-16 p-2 text-base ${
+          coach ? "field-coach" : ""
+        }`}
         rows={2}
         maxLength={2000}
         placeholder={placeholder}

@@ -84,12 +84,22 @@ export default async function History({
                               {w.notes[ex.id]}
                             </p>
                           )}
+                          {w.coachNotes[ex.id] && (
+                            <p className="mt-1 whitespace-pre-line text-sm text-amber-800">
+                              {w.coachNotes[ex.id]}
+                            </p>
+                          )}
                         </li>
                       ))}
                     </ul>
                     {w.overallNote && (
                       <p className="mt-3 whitespace-pre-line rounded-lg bg-blue-50 p-2 text-sm">
                         {w.overallNote}
+                      </p>
+                    )}
+                    {w.overallCoachNote && (
+                      <p className="mt-2 whitespace-pre-line rounded-lg bg-amber-50 p-2 text-sm text-amber-900">
+                        {w.overallCoachNote}
                       </p>
                     )}
                   </div>

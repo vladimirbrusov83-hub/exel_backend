@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import ExerciseLines from "@/components/ExerciseLines";
+import { COACH_COOKIE, isCoachToken } from "@/lib/auth";
 import { getClient, getWorkout } from "@/lib/db";
 import { formatLong } from "@/lib/dates";
 import { exerciseLabels } from "@/lib/types";
@@ -15,6 +17,11 @@ export default async function WorkoutDetail({
   const { clientId, workoutId } = await params;
   const [client, workout] = await Promise.all([getClient(clientId), getWorkout(workoutId)]);
   if (!client || !workout || workout.clientId !== clientId) notFound();
+
+  // This page is public. The cookie only decides whether the coach gets his own
+  // amber boxes to type in — the gate on writing one is requireCoach() inside
+  // saveCoachNote, not this.
+  const isCoach = await isCoachToken((await cookies()).get(COACH_COOKIE)?.value);
 
   const labels = exerciseLabels(workout.exercises);
 
@@ -66,6 +73,23 @@ export default async function WorkoutDetail({
               label="Your notes"
               placeholder="How did it feel?"
             />
+            {isCoach ? (
+              <NoteBox
+                workoutId={workout.id}
+                exerciseId={ex.id}
+                initial={workout.coachNotes[ex.id] ?? ""}
+                label="Coach note"
+                placeholder="Note for this lift"
+                tone="coach"
+              />
+            ) : (
+              workout.coachNotes[ex.id] && (
+                <p className="mt-2 whitespace-pre-line rounded-lg bg-amber-50 p-2 text-sm text-amber-900">
+                  <span className="font-medium">Coach: </span>
+                  {workout.coachNotes[ex.id]}
+                </p>
+              )
+            )}
           </li>
         ))}
       </ul>
@@ -77,6 +101,22 @@ export default async function WorkoutDetail({
           initial={workout.overallNote}
           label="Notes on the whole session"
         />
+        {isCoach ? (
+          <NoteBox
+            workoutId={workout.id}
+            exerciseId={null}
+            initial={workout.overallCoachNote}
+            label="Coach note on the session"
+            tone="coach"
+          />
+        ) : (
+          workout.overallCoachNote && (
+            <p className="mt-3 whitespace-pre-line rounded-lg bg-amber-50 p-2 text-sm text-amber-900">
+              <span className="font-medium">Coach: </span>
+              {workout.overallCoachNote}
+            </p>
+          )
+        )}
       </section>
 
       <div className="mt-6">

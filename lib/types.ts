@@ -26,7 +26,17 @@ export type Workout = {
   notes: Record<string, string>;
   /** Client's note on the whole session. */
   overallNote: string;
+  /**
+   * The coach's own notes, written from the client view on his phone. Same
+   * shape, same keys, different author — shown in amber where the client's are
+   * blue. `coachNote` above is still the session note typed in the editor.
+   */
+  coachNotes: Record<string, string>;
+  overallCoachNote: string;
 };
+
+/** Who wrote a note. Decided on the server, never sent by a browser. */
+export type NoteAuthor = "client" | "coach";
 
 export type Client = { id: string; name: string; position: number };
 

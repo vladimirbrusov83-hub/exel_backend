@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import type { Client, Exercise, Workout } from "./types";
+import type { Client, Exercise, NoteAuthor, Workout } from "./types";
 
 type Neon = ReturnType<typeof neon>;
 let client: Neon | undefined;
@@ -66,9 +66,10 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
   }[];
 
   const noteRows = (await sql`
-    SELECT workout_id, exercise_id, body
+    SELECT workout_id, exercise_id, author, body
       FROM client_notes WHERE workout_id = ANY(${ids}::uuid[])`) as {
-    workout_id: string; exercise_id: string | null; body: string;
+    workout_id: string; exercise_id: string | null;
+    author: NoteAuthor; body: string;
   }[];
 
   const exByWorkout = new Map<string, Exercise[]>();
@@ -81,21 +82,37 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
     exByWorkout.set(e.workout_id, list);
   }
 
-  const notesByWorkout = new Map<string, { ex: Record<string, string>; overall: string }>();
+  // Split by author on the way in. Collapsing both into one key would mean the
+  // coach's note and the client's note on the same exercise overwrite each
+  // other on screen even though the database keeps both rows.
+  type Notes = {
+    ex: Record<string, string>; overall: string;
+    coachEx: Record<string, string>; coachOverall: string;
+  };
+  const blankNotes = (): Notes => ({ ex: {}, overall: "", coachEx: {}, coachOverall: "" });
+
+  const notesByWorkout = new Map<string, Notes>();
   for (const n of noteRows) {
-    const entry = notesByWorkout.get(n.workout_id) ?? { ex: {}, overall: "" };
-    if (n.exercise_id) entry.ex[n.exercise_id] = n.body;
-    else entry.overall = n.body;
+    const entry = notesByWorkout.get(n.workout_id) ?? blankNotes();
+    if (n.author === "coach") {
+      if (n.exercise_id) entry.coachEx[n.exercise_id] = n.body;
+      else entry.coachOverall = n.body;
+    } else if (n.exercise_id) {
+      entry.ex[n.exercise_id] = n.body;
+    } else {
+      entry.overall = n.body;
+    }
     notesByWorkout.set(n.workout_id, entry);
   }
 
   return workoutRows.map((w) => {
-    const notes = notesByWorkout.get(w.id) ?? { ex: {}, overall: "" };
+    const notes = notesByWorkout.get(w.id) ?? blankNotes();
     return {
       id: w.id, clientId: w.client_id, date: w.date, title: w.title,
       coachNote: w.coach_note, done: w.done,
       exercises: exByWorkout.get(w.id) ?? [],
       notes: notes.ex, overallNote: notes.overall,
+      coachNotes: notes.coachEx, overallCoachNote: notes.coachOverall,
     };
   });
 }
@@ -231,21 +248,26 @@ export async function setDone(id: string, done: boolean): Promise<void> {
 }
 
 /**
- * Upsert one client note. `exerciseId` null means the overall session note.
+ * Upsert one note. `exerciseId` null means the overall session note.
  *
  * Delete-then-insert in one transaction rather than ON CONFLICT: inferring a
  * *partial* unique index from an ON CONFLICT target is easy to get subtly
- * wrong, and every note the clients write goes through this one function.
+ * wrong, and every note written in this app goes through this one function.
  * `IS NOT DISTINCT FROM` is what makes the NULL (overall-note) case match.
+ *
+ * The DELETE is scoped to the author, and must stay that way: without it the
+ * client blurring their note wipes the coach's note on the same exercise.
+ * `author` comes from the calling action, never from the browser.
  */
-export async function saveClientNote(
-  workoutId: string, exerciseId: string | null, body: string,
+export async function saveNote(
+  workoutId: string, exerciseId: string | null, author: NoteAuthor, body: string,
 ): Promise<void> {
   await sql.transaction([
     sql`DELETE FROM client_notes
          WHERE workout_id = ${workoutId}
-           AND exercise_id IS NOT DISTINCT FROM ${exerciseId}::uuid`,
-    sql`INSERT INTO client_notes (workout_id, exercise_id, body)
-        VALUES (${workoutId}, ${exerciseId}::uuid, ${body})`,
+           AND exercise_id IS NOT DISTINCT FROM ${exerciseId}::uuid
+           AND author = ${author}`,
+    sql`INSERT INTO client_notes (workout_id, exercise_id, author, body)
+        VALUES (${workoutId}, ${exerciseId}::uuid, ${author}, ${body})`,
   ]);
 }

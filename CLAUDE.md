@@ -44,13 +44,22 @@ Four tables: `clients` → `workouts` → `exercises`, plus `client_notes`.
   "bench press" being different rows is fine.
 - **The same lift twice in one session is two rows**, distinguished by `position`. Never
   `GROUP BY name`.
+- **A note has an `author`** — `'client'` or `'coach'`. The coach can open the client
+  page on his phone and write on the same exercise the client wrote on, so there is one
+  row per (workout, exercise, author). The author is decided server-side: the public
+  `saveNote` hardcodes `'client'`, and `saveCoachNote` starts with `requireCoach()`. It is
+  never a parameter a browser can set. The unique indexes include `author`, and
+  `db/schema.sql` **drops the two pre-author indexes by name first** — `CREATE UNIQUE INDEX
+  IF NOT EXISTS` matches on the index name, so without the drops an existing database keeps
+  the old two-column index and the coach's first note on an exercise the client had already
+  written on fails with a unique violation.
 - **`client_notes.exercise_id` is the key, not a position index.** CoachSpace keys its
   notes `"0_0"` by position, so reordering an exercise silently moves someone's note onto
   the wrong lift. Do not reintroduce that.
 - **Two unique indexes on `client_notes`, not one.** `NULL <> NULL` in Postgres, so a plain
   `UNIQUE (workout_id, exercise_id)` does not stop the overall note (`exercise_id IS NULL`)
-  being inserted twice. The partial index `client_notes_overall_uniq` is what actually
-  prevents duplicate overall notes.
+  being inserted twice. The partial index `client_notes_overall_author_uniq` is what
+  actually prevents duplicate overall notes.
 
 ## Supersets and labels
 
@@ -84,6 +93,39 @@ exercise and its note goes with the old name.
 
 Ids are generated with `crypto.randomUUID()` in JS rather than by the database, so the
 whole save fits in one `sql.transaction([...])` with no round-trips in between.
+
+## Two colours, everywhere
+
+Blue is the client, amber is the coach. It is already the calendar cell's 👤 / 📝 pair, and
+it now runs through the client workout page, the client history page and the editor. The
+coach's boxes on the client page use `.field-coach` rather than Tailwind's
+`border-amber-400 bg-amber-50`: `.field` is plain CSS declared after the Tailwind import, so
+at equal specificity it wins and the utilities would do nothing.
+
+`saveNote` in `lib/db.ts` is the second function here that can destroy data, after
+`saveWorkout`. Its DELETE is scoped by `author` — without that, the client blurring their
+note wipes the coach's note on the same exercise.
+
+## Previous sessions in the editor
+
+The editor takes a `history` prop: this person's last six days before the one being edited,
+newest first, sliced out of the workouts `CoachBoard` already has. No extra query.
+
+On a laptop it is a panel beside the popover; below `xl` that panel is hidden and on the
+phone sheet it folds into a closed `<details>` instead — 21rem of editor plus 16rem of
+history does not fit next to a narrow calendar column. `align` still decides which edge the
+pair hangs off, and the row reverses with it so the editor stays against that edge and the
+history always grows towards the middle of the screen.
+
+`xl` and not `lg`, from a measurement: at 1024 the Thursday column pushed the panel 17px
+past the calendar scroller. **Measure that overflow on the scroller, not on
+`documentElement`** — the scroller is `overflow-y-auto`, which makes the x axis `auto` too,
+so it absorbs the overflow and the document reports a clean 0 either way. Checked in all
+seven columns at 1024 and 1280.
+
+**It is display-only, and stays that way.** Past days as written, notes as written. No
+"last time vs this time", no deltas, no suggested loads — a history panel sitting next to
+the load fields is exactly where the automation Vladimir removed would creep back in.
 
 ## The coach gate
 
