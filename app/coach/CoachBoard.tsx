@@ -174,6 +174,79 @@ export default function CoachBoard({
   const weekMonday = addDays(mondayOf(today()), weekOffset * 7);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekMonday, i));
 
+  /** 📋 ↕️ 🗑 — the same three on the phone and on the calendar. */
+  const rowButtons = (w: Workout) => (
+    <>
+      <button
+        type="button"
+        aria-label="Copy this workout"
+        onClick={(e) => { e.stopPropagation(); setCopy({ workoutId: w.id, mode: "copy" }); }}
+        className="min-h-11 px-2 md:min-h-8 md:px-1"
+      >📋</button>
+      <button
+        type="button"
+        aria-label="Move this workout"
+        onClick={(e) => { e.stopPropagation(); setCopy({ workoutId: w.id, mode: "move" }); }}
+        className="min-h-11 px-2 md:min-h-8 md:px-1"
+      >↕️</button>
+      <button
+        type="button"
+        aria-label="Delete this workout"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (confirm("Delete this workout?")) void remove(w.id);
+        }}
+        className="min-h-11 px-2 md:min-h-8 md:px-1"
+      >🗑</button>
+    </>
+  );
+
+  /**
+   * The phone week list: one row per session — title, then the exercise names
+   * on a line or two — so a whole week is on the screen at once. Tap it to read
+   * and edit the session in full. The desktop calendar cell deliberately shows
+   * everything instead; that is what the calendar is for.
+   */
+  const compactBlock = (w: Workout) => (
+    <div
+      key={w.id}
+      className={`flex items-stretch overflow-hidden rounded-lg border ${
+        w.done ? "border-green-600/40 bg-green-50" : "border-neutral-300 bg-neutral-50"
+      } ${copy?.workoutId === w.id ? "ring-2 ring-blue-500" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (copy) void pasteOnto(w.date);
+          else setEditor({ date: w.date, workout: w });
+        }}
+        className="min-h-11 min-w-0 flex-1 px-2 py-1 text-left"
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="text-sm" aria-hidden>{w.done ? "✓" : "○"}</span>
+          <span className="truncate text-sm font-semibold">{w.title || "Session"}</span>
+          {/* The count stays, because the names below are clamped to two lines:
+              without it a six-exercise day reads as the four that fit. */}
+          <span className="ml-auto shrink-0 text-xs text-neutral-400">
+            {w.exercises.length}ex
+          </span>
+          <span className="shrink-0 text-xs">
+            {(w.coachNote || w.overallCoachNote || Object.keys(w.coachNotes).length > 0) && "📝"}
+            {(w.overallNote || Object.keys(w.notes).length > 0) && "👤"}
+          </span>
+        </span>
+        {/* Names only, two lines at most — no set lines, no notes. */}
+        <span className="line-clamp-2 text-xs leading-snug text-neutral-500">
+          {w.exercises.map((ex) => ex.name).join(" · ")}
+        </span>
+      </button>
+      <span className="flex shrink-0 items-center border-l border-neutral-200">
+        {rowButtons(w)}
+      </span>
+    </div>
+  );
+
   const block = (w: Workout) => {
     const labels = exerciseLabels(w.exercises);
     return (
@@ -228,27 +301,7 @@ export default function CoachBoard({
       </button>
 
       <div className="flex gap-1 px-1 pb-1">
-        <button
-          type="button"
-          aria-label="Copy this workout"
-          onClick={(e) => { e.stopPropagation(); setCopy({ workoutId: w.id, mode: "copy" }); }}
-          className="min-h-11 px-2 md:min-h-8 md:px-1"
-        >📋</button>
-        <button
-          type="button"
-          aria-label="Move this workout"
-          onClick={(e) => { e.stopPropagation(); setCopy({ workoutId: w.id, mode: "move" }); }}
-          className="min-h-11 px-2 md:min-h-8 md:px-1"
-        >↕️</button>
-        <button
-          type="button"
-          aria-label="Delete this workout"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm("Delete this workout?")) void remove(w.id);
-          }}
-          className="min-h-11 px-2 md:min-h-8 md:px-1"
-        >🗑</button>
+        {rowButtons(w)}
       </div>
     </div>
     );
@@ -387,24 +440,49 @@ export default function CoachBoard({
           </button>
         </nav>
 
+        {/* The day label is a gutter beside the session rather than a heading
+            above it, and + Add only takes a row of its own on an empty day.
+            Both are for the same reason: seven days have to be on the screen
+            at once, which they are not if each day costs a heading, a button
+            row and the whole session written out. */}
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-8">
-          {weekDays.map((d) => (
-            <section key={d} className="border-t border-neutral-200 py-2">
-              <div className="flex items-center justify-between">
-                <span className={`text-sm ${d === today() ? "font-semibold" : "text-neutral-500"}`}>
-                  {weekdayName(d, true)} {dayOfMonth(d)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onDayClick(d)}
-                  className="min-h-11 rounded-lg border border-neutral-300 px-4 text-sm"
-                >{copy ? "Drop here" : "+ Add"}</button>
-              </div>
-              <div className="mt-2 flex flex-col gap-2">
-                {(byDate.get(d) ?? []).map((w) => block(w))}
-              </div>
-            </section>
-          ))}
+          {weekDays.map((d) => {
+            const dayWorkouts = byDate.get(d) ?? [];
+            return (
+              <section key={d} className="flex items-start gap-2 border-t border-neutral-200 py-0.5">
+                {/* w-14 so "Mon 24" stays on one line — wrapped, it makes the
+                    gutter taller than the session beside it. */}
+                <div className="w-14 shrink-0 pt-1">
+                  <span className={`block whitespace-nowrap text-sm ${
+                    d === today() ? "font-semibold" : "text-neutral-500"
+                  }`}>
+                    {weekdayName(d, true)} {dayOfMonth(d)}
+                  </span>
+                  {/* On a day that already has a session the + lives here,
+                      beside it, where it costs no height at all. */}
+                  {dayWorkouts.length > 0 && !copy && (
+                    <button
+                      type="button"
+                      aria-label={`Add a session on ${d}`}
+                      onClick={() => onDayClick(d)}
+                      className="mt-1 min-h-11 w-11 rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-400"
+                    >+</button>
+                  )}
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  {dayWorkouts.map((w) => compactBlock(w))}
+                  {(dayWorkouts.length === 0 || copy) && (
+                    <button
+                      type="button"
+                      onClick={() => onDayClick(d)}
+                      className="min-h-11 rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-400"
+                    >{copy ? "Drop here" : "+ Add"}</button>
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </div>
       )}

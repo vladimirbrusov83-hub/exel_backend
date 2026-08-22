@@ -172,7 +172,14 @@ and the day shifts.
 - **A ⚡ Superset divider sits between every pair of exercises**, blue when on. This is
   CoachSpace's model and he asked for it by screenshot.
 - **The calendar cell shows the whole session**, exercise names and set lines, not a
-  summary. That is the point of the calendar for him.
+  summary. That is the point of the calendar for him — on the *desktop* calendar.
+- **The phone week list is a preview, not the session.** One row per session: title, the
+  note markers, and the exercise names on a line or two (`line-clamp-2`), no set lines.
+  Tap it to read and edit the whole thing. The layout around it is squeezed for the same
+  reason — the day label is a gutter beside the row rather than a heading above it, and
+  `+` only takes a row of its own on an empty day. All of that together is what puts seven
+  days on a 375×780 screen at once; measured at exactly 651px of list in 651px of space.
+  Undo any one of them and the week no longer fits.
 - **You can create a workout from a phone.** CoachSpace hides its calendar on mobile and so
   can only *edit* existing workouts there. The mobile coach view here is a week column with
   a `+ Add` on every day. Don't regress this.
