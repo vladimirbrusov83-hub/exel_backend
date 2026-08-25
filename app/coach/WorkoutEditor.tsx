@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { formatLong } from "@/lib/dates";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { formatLong, weekdayName } from "@/lib/dates";
 import { exerciseLabels, type Workout, type WorkoutDraft } from "@/lib/types";
 
 type Row = { name: string; freeText: string; linkPrev: boolean };
@@ -44,52 +44,153 @@ function NoteLines({ workout }: { workout: Workout }) {
   );
 }
 
+/** Whose note this is. Blue is the client, amber is the coach — but not at
+ *  this size in this column, so it says so as well. */
+function NoteLine({ author, body }: { author: "client" | "coach"; body: string }) {
+  return (
+    <p
+      className={`mt-0.5 whitespace-pre-line pl-2 text-xs ${
+        author === "coach" ? "text-amber-800" : "text-blue-800"
+      }`}
+    >
+      <span className="font-medium">{author === "coach" ? "You:" : "Client:"} </span>
+      {body}
+    </p>
+  );
+}
+
 /**
- * One past session, exactly as it was written. Read-only on purpose — this
- * panel exists to be looked at while programming, not to be edited or compared.
+ * One past session, exactly as it was written, with everything either of them
+ * wrote on it. Read-only on purpose — this panel exists to be looked at while
+ * programming, not to be edited or compared.
  */
 function PastDay({ workout }: { workout: Workout }) {
   const labels = exerciseLabels(workout.exercises);
   return (
     <article className="rounded-lg border border-neutral-200 p-2">
-      <h4 className="flex items-baseline gap-2">
-        <span className="text-xs font-semibold">{workout.title || "Session"}</span>
-        <span className="ml-auto text-[11px] text-neutral-400">{formatLong(workout.date)}</span>
-      </h4>
       {workout.coachNote && (
-        <p className="mt-1 whitespace-pre-line text-[11px] text-amber-700">{workout.coachNote}</p>
+        <p className="whitespace-pre-line text-xs text-amber-700">{workout.coachNote}</p>
       )}
       {workout.exercises.map((ex, i) => (
-        <div key={ex.id} className="mt-1">
+        <div key={ex.id} className="mt-1.5">
           <p className={`text-xs font-semibold ${labels[i].superset ? "text-blue-600" : ""}`}>
             {labels[i].label}) {ex.name}
           </p>
           {ex.freeText.trim() && (
-            <p className="whitespace-pre-line pl-2 font-mono text-[11px] leading-tight text-neutral-500">
+            <p className="whitespace-pre-line pl-2 font-mono text-xs leading-tight text-neutral-500">
               {ex.freeText}
             </p>
           )}
           {workout.notes[ex.id] && (
-            <p className="whitespace-pre-line pl-2 text-[11px] text-blue-800">
-              {workout.notes[ex.id]}
-            </p>
+            <NoteLine author="client" body={workout.notes[ex.id]} />
           )}
           {workout.coachNotes[ex.id] && (
-            <p className="whitespace-pre-line pl-2 text-[11px] text-amber-800">
-              {workout.coachNotes[ex.id]}
-            </p>
+            <NoteLine author="coach" body={workout.coachNotes[ex.id]} />
           )}
         </div>
       ))}
-      {workout.overallNote && (
-        <p className="mt-2 whitespace-pre-line text-[11px] text-blue-800">{workout.overallNote}</p>
-      )}
-      {workout.overallCoachNote && (
-        <p className="mt-1 whitespace-pre-line text-[11px] text-amber-800">
-          {workout.overallCoachNote}
-        </p>
+      {(workout.overallNote || workout.overallCoachNote) && (
+        <div className="mt-2 border-t border-neutral-200 pt-1">
+          {workout.overallNote && <NoteLine author="client" body={workout.overallNote} />}
+          {workout.overallCoachNote && (
+            <NoteLine author="coach" body={workout.overallCoachNote} />
+          )}
+        </div>
       )}
     </article>
+  );
+}
+
+/** The same normalisation `saveWorkout` matches exercise names with. */
+const norm = (name: string) => name.trim().toLowerCase();
+
+/** How many distinct exercises this past session shares with what is on screen. */
+function overlap(past: Workout, names: Set<string>): number {
+  const shared = new Set<string>();
+  for (const e of past.exercises) {
+    const k = norm(e.name);
+    if (names.has(k)) shared.add(k);
+  }
+  return shared.size;
+}
+
+/**
+ * Which past session the panel opens on: the most recent earlier one that
+ * shares the most exercises with the day being written. This picks *which*
+ * session is shown and nothing else — it never compares the two, and the
+ * picker overrides it.
+ */
+function bestMatch(history: Workout[], names: Set<string>, date: string): Workout | null {
+  if (history.length === 0) return null;
+
+  // `history` is newest first, so a strict > keeps the most recent of a tie.
+  let best: Workout | null = null;
+  let bestScore = 0;
+  for (const h of history) {
+    const score = overlap(h, names);
+    if (score > bestScore) { best = h; bestScore = score; }
+  }
+  if (best) return best;
+
+  // Nothing typed yet, or nothing he has ever done before. Fall back to the
+  // same weekday — "last Monday" is the next most likely thing to want open.
+  const weekday = weekdayName(date);
+  return history.find((h) => weekdayName(h.date) === weekday) ?? history[0];
+}
+
+/**
+ * "Monday, 17 Aug — Squat", with the year only when it is not the year of the
+ * day being written. The list is every earlier session, so it eventually spans
+ * years and a bare "17 Aug" stops being unique.
+ */
+function label(past: Workout, date: string): string {
+  const year = past.date.slice(0, 4);
+  const stamp = year === date.slice(0, 4) ? formatLong(past.date) : `${formatLong(past.date)} ${year}`;
+  return `${stamp} — ${past.title || "Session"}`;
+}
+
+/**
+ * One past session at a time, chosen by the picker. It starts on the session
+ * that shares the most exercises with what is being written, and follows what
+ * is typed until a session is picked by hand, after which it stays put.
+ */
+function History({
+  history, names, date,
+}: { history: Workout[]; names: string[]; date: string }) {
+  const [pickedId, setPickedId] = useState<string | null>(null);
+
+  // Keyed on the set of names rather than on every keystroke, so the panel
+  // moves when an exercise is named and not while it is being spelled.
+  const key = names.join("|");
+  const auto = useMemo(
+    () => bestMatch(history, new Set(key ? key.split("|") : []), date),
+    [history, key, date],
+  );
+
+  const shown = (pickedId && history.find((h) => h.id === pickedId)) || auto;
+  if (!shown) return <p className="p-2 text-xs text-neutral-400">Nothing before this day.</p>;
+
+  return (
+    <>
+      <select
+        className="field min-h-11 w-full px-2 text-sm md:min-h-9"
+        value={shown.id}
+        onChange={(e) => setPickedId(e.target.value)}
+        // Escape is the reflex that dismisses a dropdown, and the editor's
+        // window handler reads Escape as save-and-exit — there is no discard
+        // path, so that keypress would commit the day. Stop it here.
+        onKeyDown={(e) => { if (e.key === "Escape") e.stopPropagation(); }}
+      >
+        {history.map((h) => (
+          <option key={h.id} value={h.id}>
+            {label(h, date)}
+          </option>
+        ))}
+      </select>
+      <div className="mt-2">
+        <PastDay workout={shown} />
+      </div>
+    </>
   );
 }
 
@@ -104,9 +205,10 @@ export default function WorkoutEditor({
   date: string;
   workout: Workout | null;
   /**
-   * This person's earlier sessions, newest first — display only. It is here so
-   * the last few days and everything written on them are readable while
-   * programming, without closing the editor. Nothing compares them to what is
+   * Every earlier session of this person's, newest first — display only. One of
+   * them is shown at a time, picked by the panel's own dropdown, so that a day
+   * and everything written on it is readable while programming without closing
+   * the editor. Which session is shown is the only thing derived from what is
    * being typed: no deltas, no "last time", no suggested loads.
    */
   history: Workout[];
@@ -179,6 +281,11 @@ export default function WorkoutEditor({
   });
 
   const labels = exerciseLabels(exercises);
+
+  /** What is named on this day right now — what the history panel matches on. */
+  const currentNames = exercises
+    .map((e) => norm(e.name))
+    .filter((n) => n !== "");
 
   function patch(i: number, changes: Partial<Row>) {
     touch();
@@ -305,8 +412,8 @@ export default function WorkoutEditor({
             <span className="chev text-neutral-400">›</span>
             Previous sessions
           </summary>
-          <div className="flex flex-col gap-2 border-t border-neutral-200 p-2">
-            {history.map((h) => <PastDay key={h.id} workout={h} />)}
+          <div className="border-t border-neutral-200 p-2">
+            <History history={history} names={currentNames} date={date} />
           </div>
         </details>
       )}
@@ -320,16 +427,12 @@ export default function WorkoutEditor({
   // — an overflow the document never sees. Measure `scrollWidth - clientWidth`
   // on the scroller, not on documentElement, if this width is ever changed.
   const past = (
-    <aside className="hidden w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-neutral-300 bg-[var(--background)] shadow-xl xl:flex">
+    <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-neutral-300 bg-[var(--background)] shadow-xl xl:flex">
       <h3 className="border-b border-neutral-200 p-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
         Previous sessions
       </h3>
-      <div className="flex flex-col gap-2 overflow-y-auto p-2">
-        {history.length === 0 ? (
-          <p className="p-2 text-xs text-neutral-400">Nothing before this day.</p>
-        ) : (
-          history.map((h) => <PastDay key={h.id} workout={h} />)
-        )}
+      <div className="overflow-y-auto p-2">
+        <History history={history} names={currentNames} date={date} />
       </div>
     </aside>
   );

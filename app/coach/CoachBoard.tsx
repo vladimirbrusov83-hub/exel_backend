@@ -68,13 +68,17 @@ export default function CoachBoard({
   const refresh = () => startTransition(() => router.refresh());
 
   /**
-   * What the editor shows in its "Previous sessions" panel: this person's last
-   * few days before the one being edited, newest first. `workouts` is already
-   * this client only and sorted by date, so this is a slice, not a fetch.
+   * What the editor's "Previous sessions" panel can choose from: every earlier
+   * day of this person's, newest first. `workouts` is already this client only
+   * and sorted by date, so this is a slice, not a fetch.
+   *
+   * Deliberately not the last six — the matching session is routinely older
+   * than that. A squat day three weeks back is exactly the one he wants open
+   * while writing the next one, and the panel shows one session at a time, so
+   * the length of this list costs nothing on screen.
    */
-  const HISTORY_DAYS = 6;
   const historyFor = (date: string) =>
-    workouts.filter((w) => w.date < date).slice(-HISTORY_DAYS).reverse();
+    workouts.filter((w) => w.date < date).reverse();
 
   /* Desktop calendar opens on today. */
   useEffect(() => {

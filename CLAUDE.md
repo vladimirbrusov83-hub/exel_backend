@@ -108,24 +108,47 @@ note wipes the coach's note on the same exercise.
 
 ## Previous sessions in the editor
 
-The editor takes a `history` prop: this person's last six days before the one being edited,
-newest first, sliced out of the workouts `CoachBoard` already has. No extra query.
+The editor takes a `history` prop: **every** earlier day of this person's, newest first,
+sliced out of the workouts `CoachBoard` already has. No extra query. It was the last six
+for a while, which quietly broke the point of the panel — the session worth reading while
+writing a squat day is routinely older than six sessions.
+
+The panel shows **one session at a time**, chosen by a `<select>` listing all of them.
+Which one it opens on is `bestMatch()`: the most recent earlier session sharing the most
+exercise names with what is currently typed, compared with the same `trim().toLowerCase()`
+rule `saveWorkout` matches names with. An empty day has nothing to match on, so it falls
+back to the same weekday — "last Monday" — and then to the most recent session.
+
+The default follows what is typed until a session is picked by hand; after that the pick
+holds. It is keyed on the joined list of non-empty names, so the panel moves when an
+exercise is named, not while it is being spelled.
+
+**Which session is shown is the only thing derived from what is being typed.** Past days
+as written, notes as written. No "last time vs this time", no deltas, no suggested loads —
+a history panel sitting next to the load fields is exactly where the automation Vladimir
+removed would creep back in. Choosing what to look at is navigation; anything that reads
+the two sessions against each other is not.
+
+The picker's `<select>` swallows Escape (`stopPropagation` on its keydown). Escape is the
+reflex that dismisses a native dropdown, and the editor's window handler reads Escape as
+save-and-exit with no discard path — without this, dismissing the dropdown commits the day
+and closes the editor. Verified: it does propagate in Chrome otherwise.
+
+Every note on the shown day is rendered — the session note, both authors' per-exercise
+notes and both overall notes — and each is prefixed `Client:` or `You:`. Blue and amber
+alone are not enough to tell them apart at this size in this column.
 
 On a laptop it is a panel beside the popover; below `xl` that panel is hidden and on the
-phone sheet it folds into a closed `<details>` instead — 21rem of editor plus 16rem of
-history does not fit next to a narrow calendar column. `align` still decides which edge the
-pair hangs off, and the row reverses with it so the editor stays against that edge and the
-history always grows towards the middle of the screen.
+phone sheet it folds into a closed `<details>` instead. `align` still decides which edge
+the pair hangs off, and the row reverses with it so the editor stays against that edge and
+the history always grows towards the middle of the screen.
 
-`xl` and not `lg`, from a measurement: at 1024 the Thursday column pushed the panel 17px
-past the calendar scroller. **Measure that overflow on the scroller, not on
+`xl` and not `lg`, from a measurement: at 1024 the Thursday column pushed the panel past
+the calendar scroller. **Measure that overflow on the scroller, not on
 `documentElement`** — the scroller is `overflow-y-auto`, which makes the x axis `auto` too,
-so it absorbs the overflow and the document reports a clean 0 either way. Checked in all
-seven columns at 1024 and 1280.
-
-**It is display-only, and stays that way.** Past days as written, notes as written. No
-"last time vs this time", no deltas, no suggested loads — a history panel sitting next to
-the load fields is exactly where the automation Vladimir removed would creep back in.
+so it absorbs the overflow and the document reports a clean 0 either way. The panel is
+`w-72`: one session at a time bought the room, and 21rem of editor plus 18rem of history
+was re-measured at 0 overflow in all seven columns at 1280.
 
 ## The coach gate
 
