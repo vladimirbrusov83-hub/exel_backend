@@ -20,6 +20,9 @@ himself.
 So: no progression logic, no suggested loads, no analytics, no accounts. A real database
 is exactly where that temptation comes back. It stays out.
 
+Ticking sets off (below) is the one thing the app records about what happened. It is a
+checkbox the two of them look at, not an input to anything.
+
 ## Setup
 
 ```
@@ -56,10 +59,54 @@ Four tables: `clients` → `workouts` → `exercises`, plus `client_notes`.
 - **`client_notes.exercise_id` is the key, not a position index.** CoachSpace keys its
   notes `"0_0"` by position, so reordering an exercise silently moves someone's note onto
   the wrong lift. Do not reintroduce that.
+- **`exercises.done_sets` is the one place a position index survives**, because a set has
+  no id to hang anything on. See "Ticking a set off" below for the rule that keeps it
+  honest.
 - **Two unique indexes on `client_notes`, not one.** `NULL <> NULL` in Postgres, so a plain
   `UNIQUE (workout_id, exercise_id)` does not stop the overall note (`exercise_id IS NULL`)
   being inserted twice. The partial index `client_notes_overall_author_uniq` is what
   actually prevents duplicate overall notes.
+
+## Ticking a set off
+
+Each set line on the client workout page has a box in front of it. Tap it and that set is
+done: green tick, struck through, greyed. Both of them tap the same box — `SetChecks` is
+on the page the client reads in the gym, which is also the page the coach opens on his
+phone to write notes.
+
+**A tick is not split by author** the way a note is. The two of them say different things
+about a lift, so a note needs an author; a set is done or it is not.
+
+**A set is identified by its line number**, 0-based, stored in `exercises.done_sets`.
+`setLines()` in `lib/types.ts` is the only definition of what a line is — the server
+range-checks against it, `SetChecks` renders through it, `ExerciseLines` renders through
+it. Two definitions of "line 3" means a tick that lands on a different set on one screen
+than on another. **Blank lines keep their number** and render as a gap for the same
+reason: skip them and everything below shifts.
+
+That is a position key, which is exactly what `client_notes` refuses to be. What keeps it
+from becoming the CoachSpace `"0_0"` bug is the rule in `saveWorkout`: an exercise keeps
+its ticks only while the **number of lines** stays the same. Fixing `95*10` to `100*10`
+keeps them; adding or deleting a set line empties `done_sets` for that exercise, because
+otherwise every tick below the new line slides onto the wrong set. Vladimir chose that
+over the stricter "any edit clears" — a typo fix should not wipe a client's session.
+Renaming an exercise takes the INSERT path with a fresh id, so its ticks go the same way
+its notes do.
+
+Ticks are display only, in both directions. They appear on the client workout page and,
+read-only, on the client history page. They are deliberately **not** in the coach editor,
+the `PastDay` history panel or the desktop calendar cell: "what got done" sitting next to
+the load fields is where progression logic starts arguing for itself, which is the line
+this project draws.
+
+The toggle is optimistic — it is tapped between sets on gym wifi and a box that waits for
+a round-trip feels broken. `useOptimistic` layers over the server value, so `toggleSet`
+**must** keep its `revalidatePath`: React drops the optimistic value once the transition
+settles, and with no fresh server data to land on every tick visibly flips back.
+
+`setSetDone` re-reads the exercise and range-checks the line before writing, because the
+action is public like `saveNote`. Both of its writes are a single statement, so two taps
+landing together cannot read the same array and overwrite each other.
 
 ## Supersets and labels
 

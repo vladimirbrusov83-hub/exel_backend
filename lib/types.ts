@@ -10,6 +10,12 @@ export type Exercise = {
   freeText: string;
   /** Supersetted with the exercise above it. */
   linkPrev: boolean;
+  /**
+   * Line numbers of the set lines that have been ticked off, 0-based, in no
+   * particular order. Shared between the two of them — a set is done or it is
+   * not, so unlike a note this is not split by author.
+   */
+  doneSets: number[];
 };
 
 export type Workout = {
@@ -34,6 +40,24 @@ export type Workout = {
   coachNotes: Record<string, string>;
   overallCoachNote: string;
 };
+
+/**
+ * One line of an exercise's free text is one set. `index` is what a tick is
+ * keyed on, so **blank lines are counted, not skipped** — dropping them here
+ * would renumber every line below one and move the ticks.
+ *
+ * Every renderer and the server both go through this function. There must only
+ * ever be one definition of "line 3", or a tick lands on a different set on
+ * one screen than it does on another.
+ */
+export type SetLine = { index: number; text: string };
+
+export function setLines(freeText: string): SetLine[] {
+  return freeText
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((text, index) => ({ index, text }));
+}
 
 /** Who wrote a note. Decided on the server, never sent by a browser. */
 export type NoteAuthor = "client" | "coach";

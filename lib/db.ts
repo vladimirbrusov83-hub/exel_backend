@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { setLines } from "./types";
 import type { Client, Exercise, NoteAuthor, Workout } from "./types";
 
 type Neon = ReturnType<typeof neon>;
@@ -58,11 +59,11 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
   const ids = workoutRows.map((w) => w.id);
 
   const exRows = (await sql`
-    SELECT id, workout_id, position, name, free_text, link_prev
+    SELECT id, workout_id, position, name, free_text, link_prev, done_sets
       FROM exercises WHERE workout_id = ANY(${ids}::uuid[])
      ORDER BY workout_id, position`) as {
     id: string; workout_id: string; position: number; name: string;
-    free_text: string; link_prev: boolean;
+    free_text: string; link_prev: boolean; done_sets: number[] | null;
   }[];
 
   const noteRows = (await sql`
@@ -78,6 +79,7 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
     list.push({
       id: e.id, position: e.position, name: e.name,
       freeText: e.free_text, linkPrev: e.link_prev,
+      doneSets: e.done_sets ?? [],
     });
     exByWorkout.set(e.workout_id, list);
   }
@@ -195,10 +197,27 @@ export async function saveWorkout(draft: WorkoutInput): Promise<string> {
     const exId = match?.id ?? crypto.randomUUID();
     keptIds.push(exId);
     if (match) {
-      statements.push(sql`
+      // Ticked-off sets are keyed by line number, so they only survive an edit
+      // that leaves the number of lines alone: fixing "95*10" to "100*10" keeps
+      // them, adding or deleting a set line clears them. Without that, a set
+      // inserted at the top slides every tick below it onto the wrong line.
+      // Comparing counts through setLines() and not in SQL keeps one definition
+      // of what a line is. (A *renamed* exercise takes the INSERT path below
+      // with a fresh id, so its ticks go with its notes — same trade as always.)
+      const keepTicks = setLines(match.freeText).length === setLines(ex.freeText).length;
+      // Two whole statements rather than one with a conditional fragment: the
+      // neon driver has no fragment type, so an interpolated sql`` would be
+      // sent as a *value*, not as SQL.
+      statements.push(keepTicks
+        ? sql`
         UPDATE exercises
            SET position = ${i}, name = ${ex.name}, free_text = ${ex.freeText},
                link_prev = ${i > 0 && ex.linkPrev}
+         WHERE id = ${exId} AND workout_id = ${workoutId}`
+        : sql`
+        UPDATE exercises
+           SET position = ${i}, name = ${ex.name}, free_text = ${ex.freeText},
+               link_prev = ${i > 0 && ex.linkPrev}, done_sets = '{}'::int[]
          WHERE id = ${exId} AND workout_id = ${workoutId}`);
     } else {
       statements.push(sql`
@@ -233,6 +252,8 @@ export async function copyWorkout(
   if (!src) return null;
   return saveWorkout({
     id: null, clientId, date, title: src.title, coachNote: src.coachNote,
+    // No doneSets: the rows are inserted fresh, so the copy starts unticked
+    // the same way it starts not-done and without the other person's notes.
     exercises: src.exercises.map((e) => ({
       name: e.name, freeText: e.freeText, linkPrev: e.linkPrev,
     })),
@@ -245,6 +266,42 @@ export async function deleteWorkout(id: string): Promise<void> {
 
 export async function setDone(id: string, done: boolean): Promise<void> {
   await sql`UPDATE workouts SET done = ${done} WHERE id = ${id}`;
+}
+
+/**
+ * Ticks one set line off, or back on. `line` is a 0-based index into
+ * `setLines(free_text)` — the same function every screen renders through.
+ *
+ * It is read back and range-checked here rather than trusted, because the
+ * action that calls this is public like `saveNote`: nothing stops a browser
+ * posting line 9999, and an out-of-range tick would sit in the array forever,
+ * invisible, until an edit grew the exercise enough to reveal it.
+ *
+ * Both writes are a single statement, so two taps landing at once cannot read
+ * the same array and write back over each other.
+ */
+export async function setSetDone(
+  workoutId: string, exerciseId: string, line: number, done: boolean,
+): Promise<void> {
+  if (!Number.isInteger(line) || line < 0) return;
+
+  const rows = (await sql`
+    SELECT free_text FROM exercises
+     WHERE id = ${exerciseId} AND workout_id = ${workoutId}`) as { free_text: string }[];
+  if (rows.length === 0 || line >= setLines(rows[0].free_text).length) return;
+
+  if (done) {
+    // Sorted and de-duplicated, so the array cannot grow on a double tap.
+    await sql`
+      UPDATE exercises
+         SET done_sets = (SELECT coalesce(array_agg(DISTINCT n ORDER BY n), '{}')
+                            FROM unnest(done_sets || ${line}::int) AS n)
+       WHERE id = ${exerciseId} AND workout_id = ${workoutId}`;
+  } else {
+    await sql`
+      UPDATE exercises SET done_sets = array_remove(done_sets, ${line}::int)
+       WHERE id = ${exerciseId} AND workout_id = ${workoutId}`;
+  }
 }
 
 /**

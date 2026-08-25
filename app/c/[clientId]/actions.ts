@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireCoach } from "@/lib/coach-guard";
-import { saveNote as saveNoteRow, setDone } from "@/lib/db";
+import { saveNote as saveNoteRow, setDone, setSetDone } from "@/lib/db";
 
 /**
  * Client-side writes. Deliberately unauthenticated — there is no login in this
@@ -31,6 +31,26 @@ export async function saveCoachNote(
   await saveNoteRow(workoutId, exerciseId, "coach", body.slice(0, MAX_NOTE));
   // So the note is already there when he opens that day in the laptop editor.
   revalidatePath("/coach");
+}
+
+/**
+ * Ticking one set line off, from the client page. Public like `saveNote`, and
+ * narrow in the same way: it can only flip a boolean on a line that exists —
+ * `setSetDone` range-checks the line against the exercise's own text.
+ *
+ * There is no coach version of this. Notes are split by author because the two
+ * of them say different things about the same lift; a set is simply done or it
+ * is not, so both of them tap the same box.
+ *
+ * The revalidate is not optional. The button is optimistic, and React drops an
+ * optimistic value once the transition settles — without fresh server data to
+ * land on, every tick would visibly flip back.
+ */
+export async function toggleSet(
+  clientId: string, workoutId: string, exerciseId: string, line: number, done: boolean,
+): Promise<void> {
+  await setSetDone(workoutId, exerciseId, line, done);
+  revalidatePath(`/c/${clientId}/w/${workoutId}`);
 }
 
 export async function markDone(

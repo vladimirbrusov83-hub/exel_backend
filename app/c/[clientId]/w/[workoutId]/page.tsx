@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import ExerciseLines from "@/components/ExerciseLines";
 import { COACH_COOKIE, isCoachToken } from "@/lib/auth";
 import { getClient, getWorkout } from "@/lib/db";
 import { formatLong } from "@/lib/dates";
 import { exerciseLabels } from "@/lib/types";
 import DoneButton from "./DoneButton";
+import SetChecks from "./SetChecks";
 import NoteBox from "./NoteBox";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +65,14 @@ export default async function WorkoutDetail({
                 <span className="ml-2 text-xs font-normal text-blue-600">⚡ superset</span>
               )}
             </h3>
-            <ExerciseLines freeText={ex.freeText} />
+            <SetChecks
+              clientId={clientId}
+              workoutId={workout.id}
+              exerciseId={ex.id}
+              exerciseName={ex.name}
+              freeText={ex.freeText}
+              doneSets={ex.doneSets}
+            />
             <NoteBox
               workoutId={workout.id}
               exerciseId={ex.id}

@@ -78,7 +78,7 @@ export default async function History({
                             </span>
                             {ex.name}
                           </h3>
-                          <ExerciseLines freeText={ex.freeText} />
+                          <ExerciseLines freeText={ex.freeText} doneSets={ex.doneSets} />
                           {w.notes[ex.id] && (
                             <p className="mt-1 whitespace-pre-line text-sm text-blue-800">
                               {w.notes[ex.id]}

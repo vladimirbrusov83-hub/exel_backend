@@ -26,7 +26,9 @@ CREATE INDEX IF NOT EXISTS workouts_client_date_idx ON workouts (client_id, date
 
 -- An exercise is a name plus one block of free text, one line per set, stored
 -- exactly as typed: "95*10", "b*10", "BW*45s", "100 kg * 5". Nothing in here is
--- ever parsed into numbers, and there is no sets table on purpose.
+-- ever parsed into numbers, and there is no sets table on purpose. `done_sets`
+-- does not change that: it stores which *line numbers* are ticked off and never
+-- looks at what is written on them.
 CREATE TABLE IF NOT EXISTS exercises (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workout_id  uuid NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
@@ -36,7 +38,14 @@ CREATE TABLE IF NOT EXISTS exercises (
   -- "supersetted with the exercise above me". A run of linked exercises is one
   -- group, which is what turns A) B) into A1) A2). Storing the link rather than
   -- a group id means reordering can never leave a dangling group.
-  link_prev   boolean NOT NULL DEFAULT false
+  link_prev   boolean NOT NULL DEFAULT false,
+  -- Which of those lines have been ticked off, by line number, 0-based.
+  -- The line is the only key a set has — there is no id to hang this on — so
+  -- `saveWorkout` empties this whenever the number of lines changes. See the
+  -- comment there: without that, inserting a set at the top slides every tick
+  -- below it onto the wrong line, which is the CoachSpace "0_0" bug in a new
+  -- costume. A tick is shared, not per-author: a set is done or it is not.
+  done_sets   int[] NOT NULL DEFAULT '{}'
 );
 -- Deliberately NOT unique. Reordering writes the new positions one row at a
 -- time, so two rows briefly share a position mid-transaction. A unique index
@@ -80,6 +89,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS client_notes_overall_author_uniq
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS free_text text NOT NULL DEFAULT '';
 ALTER TABLE exercises DROP COLUMN IF EXISTS coach_note;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS link_prev boolean NOT NULL DEFAULT false;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS done_sets int[] NOT NULL DEFAULT '{}';
 DROP TABLE IF EXISTS sets;
 
 -- Seed: two people. Rename them inline on the coach page.
