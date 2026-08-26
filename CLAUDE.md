@@ -254,7 +254,12 @@ and the day shifts.
   `/c/[clientId]/w/[workoutId]`, the page with the set boxes and both note columns. That
   is the page he actually wants in the gym. Editing is the ✏️ Edit link in that page's
   header, which only renders for `isCoach` and comes back as `/coach?c=…&edit=<id>`.
-  `editWorkoutId` opens the editor on that day. It fires **once**, behind a ref: `refresh()`
+  `editWorkoutId` opens the editor on that day, and **closing it goes back to that page** —
+  Save & close, Escape and ⌘⏎ all land back where he pressed Edit, not on the week list.
+  Deleting is the exception: `remove()` clears the return path when the id matches, because
+  the page it would go back to is about to 404. That return path is a ref and not state —
+  `remove()` clears it after an `await`, and the `onClose` that runs next would still read
+  a stale value. It fires **once**, behind a ref: `refresh()`
   after every save re-runs `CoachBoard` with `edit=` still in the URL, and without the
   guard closing the editor and saving would pop it straight back open. The desktop
   calendar's mount scroll also honours `edit=`, or the popover mounts off-screen when the

@@ -93,12 +93,29 @@ export default function CoachBoard({
    * the other person is a no-op rather than an editor on someone else's day.
    */
   const openedDeepLink = useRef(false);
+  /**
+   * Where closing the editor goes back to — the client workout page he pressed
+   * ✏️ Edit on, so save-and-exit lands back where he was rather than on the
+   * week list. A ref and not state: `remove()` clears it after an await, and
+   * the `onClose` that runs next would otherwise still see the old value.
+   */
+  const returnTo = useRef<string | null>(null);
   useEffect(() => {
     if (!editWorkoutId || openedDeepLink.current) return;
     openedDeepLink.current = true;
     const w = workouts.find((x) => x.id === editWorkoutId);
-    if (w) setEditor({ date: w.date, workout: w });
-  }, [editWorkoutId, workouts]);
+    if (!w) return;
+    setEditor({ date: w.date, workout: w });
+    returnTo.current = `/c/${clientId}/w/${w.id}`;
+  }, [editWorkoutId, workouts, clientId]);
+
+  /** Every exit from the editor — Save & close, Escape, ⌘⏎ and delete. */
+  function closeEditor() {
+    setEditor(null);
+    const to = returnTo.current;
+    returnTo.current = null;
+    if (to) router.push(to);
+  }
 
   /* Desktop calendar opens on today — or on the day being edited, when we
      arrived from ?edit=, so the popover is not mounted off-screen. */
@@ -191,6 +208,8 @@ export default function CoachBoard({
   }
 
   async function remove(id: string) {
+    // The page we would go back to is about to 404. Stay on the calendar.
+    if (returnTo.current?.endsWith(`/${id}`)) returnTo.current = null;
     await deleteWorkoutAction(id);
     refresh();
   }
@@ -440,7 +459,7 @@ export default function CoachBoard({
                       variant="popover"
                       // Fri/Sat/Sun hang off the right edge or they run off screen.
                       align={i % 7 >= 4 ? "right" : "left"}
-                      onClose={() => setEditor(null)}
+                      onClose={closeEditor}
                       onSave={save}
                       onDelete={remove}
                     />
@@ -524,7 +543,7 @@ export default function CoachBoard({
           workout={editor.workout}
           history={historyFor(editor.date)}
           variant="sheet"
-          onClose={() => setEditor(null)}
+          onClose={closeEditor}
           onSave={save}
           onDelete={remove}
         />
