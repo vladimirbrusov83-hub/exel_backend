@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 export default async function CoachPage({
   searchParams,
-}: { searchParams: Promise<{ c?: string }> }) {
-  const { c } = await searchParams;
+}: { searchParams: Promise<{ c?: string; edit?: string }> }) {
+  const { c, edit } = await searchParams;
   const clients = await getClients();
 
   if (clients.length === 0) {
@@ -23,5 +23,12 @@ export default async function CoachPage({
 
   const workouts = await getAllWorkouts(selected.id);
 
-  return <CoachBoard clients={clients} clientId={selected.id} workouts={workouts} />;
+  return (
+    <CoachBoard
+      clients={clients}
+      clientId={selected.id}
+      workouts={workouts}
+      editWorkoutId={edit}
+    />
+  );
 }

@@ -34,8 +34,13 @@ function calendarDays(): string[] {
 type CopyState = { workoutId: string; mode: "copy" | "move" } | null;
 
 export default function CoachBoard({
-  clients, clientId, workouts,
-}: { clients: Client[]; clientId: string; workouts: Workout[] }) {
+  clients, clientId, workouts, editWorkoutId,
+}: {
+  clients: Client[]; clientId: string; workouts: Workout[];
+  /** ?edit= — a session to open the editor on straight away, from the ✏️ Edit
+   *  link on the client workout page. */
+  editWorkoutId?: string;
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [copy, setCopy] = useState<CopyState>(null);
@@ -80,9 +85,26 @@ export default function CoachBoard({
   const historyFor = (date: string) =>
     workouts.filter((w) => w.date < date).reverse();
 
-  /* Desktop calendar opens on today. */
+  /**
+   * Opened from ?edit=. Once only: `router.refresh()` after every save re-runs
+   * this component with the param still in the URL, and without the ref a save
+   * would pop the editor straight back open after it was closed. The id is
+   * looked up in `workouts`, which is this client only, so an id belonging to
+   * the other person is a no-op rather than an editor on someone else's day.
+   */
+  const openedDeepLink = useRef(false);
   useEffect(() => {
-    const el = scroller.current?.querySelector(`[data-date="${today()}"]`);
+    if (!editWorkoutId || openedDeepLink.current) return;
+    openedDeepLink.current = true;
+    const w = workouts.find((x) => x.id === editWorkoutId);
+    if (w) setEditor({ date: w.date, workout: w });
+  }, [editWorkoutId, workouts]);
+
+  /* Desktop calendar opens on today — or on the day being edited, when we
+     arrived from ?edit=, so the popover is not mounted off-screen. */
+  useEffect(() => {
+    const date = workouts.find((x) => x.id === editWorkoutId)?.date ?? today();
+    const el = scroller.current?.querySelector(`[data-date="${date}"]`);
     el?.scrollIntoView({ block: "center" });
     onScroll(); // scrollIntoView does not always fire a scroll event
     // Mount only — this positions the calendar once and must not re-run.
@@ -222,8 +244,11 @@ export default function CoachBoard({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
+          // On the phone a session opens as the client sees it — the page with
+          // the set boxes and both note columns. Editing it is the ✏️ Edit link
+          // in that page's header, which comes back here with ?edit=.
           if (copy) void pasteOnto(w.date);
-          else setEditor({ date: w.date, workout: w });
+          else router.push(`/c/${clientId}/w/${w.id}`);
         }}
         className="min-h-11 min-w-0 flex-1 px-2 py-1 text-left"
       >

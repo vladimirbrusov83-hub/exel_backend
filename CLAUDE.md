@@ -250,6 +250,16 @@ and the day shifts.
   `+` only takes a row of its own on an empty day. All of that together is what puts seven
   days on a 375×780 screen at once; measured at exactly 651px of list in 651px of space.
   Undo any one of them and the week no longer fits.
+- **On the phone, tapping a session opens the client's view of it**, not the editor —
+  `/c/[clientId]/w/[workoutId]`, the page with the set boxes and both note columns. That
+  is the page he actually wants in the gym. Editing is the ✏️ Edit link in that page's
+  header, which only renders for `isCoach` and comes back as `/coach?c=…&edit=<id>`.
+  `editWorkoutId` opens the editor on that day. It fires **once**, behind a ref: `refresh()`
+  after every save re-runs `CoachBoard` with `edit=` still in the URL, and without the
+  guard closing the editor and saving would pop it straight back open. The desktop
+  calendar's mount scroll also honours `edit=`, or the popover mounts off-screen when the
+  session is not near today. The desktop cell still opens the editor on click — this is a
+  phone change.
 - **You can create a workout from a phone.** CoachSpace hides its calendar on mobile and so
   can only *edit* existing workouts there. The mobile coach view here is a week column with
   a `+ Add` on every day. Don't regress this.

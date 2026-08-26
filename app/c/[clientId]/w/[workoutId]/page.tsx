@@ -27,12 +27,25 @@ export default async function WorkoutDetail({
 
   return (
     <main className="mx-auto max-w-md p-4 pb-16">
-      <Link
-        href={`/c/${clientId}`}
-        className="inline-flex min-h-11 items-center text-sm text-neutral-500 underline underline-offset-4"
-      >
-        ‹ Back to the week
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href={`/c/${clientId}`}
+          className="inline-flex min-h-11 items-center text-sm text-neutral-500 underline underline-offset-4"
+        >
+          ‹ Back to the week
+        </Link>
+        {/* The way back to the editor. On the phone the coach reaches this page
+            by tapping a session on /coach, so this is how he fixes a load from
+            the gym floor. `?edit=` opens the editor on this day. */}
+        {isCoach && (
+          <Link
+            href={`/coach?c=${clientId}&edit=${workout.id}`}
+            className="inline-flex min-h-11 shrink-0 items-center text-sm text-amber-700 underline underline-offset-4"
+          >
+            ✏️ Edit
+          </Link>
+        )}
+      </div>
 
       <header className="mt-2">
         <h1 className="text-xl font-semibold">{workout.title || "Session"}</h1>
