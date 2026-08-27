@@ -13,7 +13,7 @@ import { saveCoachNote, saveNote } from "../../actions";
  * for 👤 and 📝. The author is decided inside the action, not sent from here.
  */
 export default function NoteBox({
-  workoutId, exerciseId, initial, label, placeholder, tone = "client",
+  workoutId, exerciseId, initial, label, placeholder, tone = "client", rows = 1,
 }: {
   workoutId: string;
   exerciseId: string | null;
@@ -21,6 +21,8 @@ export default function NoteBox({
   label: string;
   placeholder?: string;
   tone?: "client" | "coach";
+  /** 1 for the per-exercise boxes, so a superset pair fits one phone screen. */
+  rows?: number;
 }) {
   const [value, setValue] = useState(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -45,8 +47,8 @@ export default function NoteBox({
   }
 
   return (
-    <div className="mt-3">
-      <div className="mb-1 flex items-baseline justify-between">
+    <div className="mt-2">
+      <div className="mb-0.5 flex items-baseline justify-between">
         <label className={`text-xs font-medium uppercase tracking-wide ${
           coach ? "text-amber-700" : "text-neutral-500"
         }`}>
@@ -59,10 +61,10 @@ export default function NoteBox({
         </span>
       </div>
       <textarea
-        className={`field min-h-16 p-2 text-base ${
+        className={`field p-2 text-base ${rows > 1 ? "min-h-16" : "min-h-10"} ${
           coach ? "field-coach" : ""
         }`}
-        rows={2}
+        rows={rows}
         maxLength={2000}
         placeholder={placeholder}
         value={value}

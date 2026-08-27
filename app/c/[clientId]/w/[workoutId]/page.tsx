@@ -61,11 +61,11 @@ export default async function WorkoutDetail({
         </section>
       )}
 
-      <ul className="mt-4 flex flex-col gap-3">
+      <ul className="mt-4 flex flex-col gap-2">
         {workout.exercises.map((ex, i) => (
           <li
             key={ex.id}
-            className={`rounded-xl border p-4 ${
+            className={`rounded-xl border p-3 ${
               labels[i].superset ? "border-blue-300" : "border-neutral-300"
             }`}
           >
@@ -120,6 +120,7 @@ export default async function WorkoutDetail({
           exerciseId={null}
           initial={workout.overallNote}
           label="Notes on the whole session"
+          rows={2}
         />
         {isCoach ? (
           <NoteBox
@@ -127,6 +128,7 @@ export default async function WorkoutDetail({
             exerciseId={null}
             initial={workout.overallCoachNote}
             label="Coach note on the session"
+            rows={2}
             tone="coach"
           />
         ) : (
