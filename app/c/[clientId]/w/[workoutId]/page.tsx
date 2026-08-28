@@ -29,10 +29,10 @@ export default async function WorkoutDetail({
   const groups = exerciseGroups(workout.exercises);
 
   return (
-    // `session-dark` redeclares the theme tokens (globals.css) so the note
+    // `dark-page` redeclares the theme tokens (globals.css) so the note
     // textareas inside go dark with the page. Full-bleed min-h-dvh, or a phone
     // shows white gutters and a white overscroll bounce around the dark column.
-    <div className="session-dark min-h-dvh">
+    <div className="dark-page min-h-dvh">
       <main className="mx-auto max-w-md px-4 pt-2 pb-8">
         <div className="flex items-center justify-between gap-2">
           <Link

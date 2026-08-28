@@ -65,16 +65,16 @@ details[open] > summary .chev {
 }
 
 /* ---------------------------------------------------------------------------
-   The client's session page, and only that page, runs dark — the screen they
-   hold in the gym. The tokens are redeclared on a container class rather than
+   The pages the client reads in the gym run dark — the week list and the
+   session itself. The tokens are redeclared on a container class rather than
    on :root, so they inherit down into `.field` (the note boxes go dark for
-   free) while /coach and the week list stay white.
+   free) while /coach stays white.
 
    `color-scheme` is deliberately left light globally. Flipping it here is what
    caused the unreadable dark-mode fields the app was fixed for once already;
    every dark colour below is set explicitly instead.
    --------------------------------------------------------------------------- */
-.session-dark {
+.dark-page {
   --background: #1b1c22;
   --foreground: #f2f2f6;
   --field-bg: #2c2e39;
@@ -84,20 +84,20 @@ details[open] > summary .chev {
 }
 /* With color-scheme staying light the browser paints a dark caret, which is
    invisible in a dark field. */
-.session-dark .field {
+.dark-page .field {
   caret-color: var(--foreground);
 }
-.session-dark .field:focus {
+.dark-page .field:focus {
   border-color: #8b8fa6;
 }
 /* The coach's amber box. amber-50 on a dark card glows; this is the same idea
    at dark-surface weight. Two classes deep so it still outranks plain `.field`. */
-.session-dark .field-coach {
+.dark-page .field-coach {
   border-color: #a4761b;
   background-color: #37301f;
 }
 /* The dark page is a container inside a white body, so an iOS overscroll bounce
    would flash white above and below it. Paint the body to match. */
-body:has(.session-dark) {
+body:has(.dark-page) {
   background: #1b1c22;
 }

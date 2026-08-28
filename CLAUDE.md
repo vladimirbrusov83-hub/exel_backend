@@ -295,22 +295,31 @@ white theme on every page. `color-scheme: light` in `:root` stays global; it is 
 the browser painting form controls, scrollbars and the caret dark underneath, and flipping
 it is what made the fields unreadable the one time this was tried before.
 
-The exception is **the client's session page**, `/c/[clientId]/w/[workoutId]` — the screen
-they hold in the gym, asked for by a TrueCoach screenshot. It is dark via a `.session-dark`
-container class that **redeclares the theme tokens** (`--background`, `--foreground`,
-`--field-bg`, `--field-border`) rather than touching `:root`. Custom properties inherit, so
-the `NoteBox` textareas inside go dark for free while `/coach`, the week list and the
-history page are untouched. Every other dark colour on that page is an explicit Tailwind
-utility on a component used only there (`SetChecks`, `NoteBox`, `DoneButton`).
+The exception is **the two pages the client reads in the gym** — the week list
+`/c/[clientId]` and the session `/c/[clientId]/w/[workoutId]`, asked for by a TrueCoach
+screenshot. They are dark via a `.dark-page` container class that **redeclares the theme
+tokens** (`--background`, `--foreground`, `--field-bg`, `--field-border`) rather than
+touching `:root`. Custom properties inherit, so the `NoteBox` textareas inside go dark for
+free while `/coach`, the name picker at `/` and the history page are untouched. Every other
+dark colour is an explicit Tailwind utility on a component used only on those pages
+(`SetChecks`, `NoteBox`, `DoneButton`).
+
+The class is `.dark-page` and not `.session-dark` because it now covers more than the
+session. `#4e4f60` is the shared surface: the exercise blocks on the session page and the
+session rows on the week list, so a row reads as the card it opens into. A done session is
+tinted (`bg-green-400/10`) rather than filled, or a good week goes green all over.
+
+Still white and deliberately so: `/` (the name picker, seen once), the history page, and
+everything under `/coach`.
 
 Three things that page needs and would break quietly:
 
-- `.session-dark .field-coach` — amber-50 on a dark card glows white-yellow. Two classes
+- `.dark-page .field-coach` — amber-50 on a dark card glows white-yellow. Two classes
   deep so it still outranks plain `.field`. The read-only `Coach:` blocks the client sees
   are `bg-amber-400/10` for the same reason.
-- `.session-dark .field { caret-color }` — `color-scheme` stays light, so the browser
+- `.dark-page .field { caret-color }` — `color-scheme` stays light, so the browser
   paints a dark caret that is invisible in a dark field.
-- `body:has(.session-dark)` — the dark page is a container inside a white body, and iOS
+- `body:has(.dark-page)` — the dark page is a container inside a white body, and iOS
   overscroll would flash white above and below it.
 
 - **`.field`** is used by every input, textarea and select. It is plain CSS against the
