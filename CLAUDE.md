@@ -114,9 +114,18 @@ landing together cannot read the same array and overwrite each other.
 exercises is one group. **The link is stored, not a group id** — with group ids, reordering
 or deleting leaves dangling groups; with links it cannot.
 
-`exerciseLabels()` in `lib/types.ts` turns that into what is displayed: a lone exercise is
-`A)`, a group of two is `A1)` `A2)`, and group members render blue. Labels are derived at
-render time and never stored, so they renumber themselves.
+`exerciseGroups()` in `lib/types.ts` does the splitting, and `exerciseLabels()` turns it
+into what is displayed: a lone exercise is `A)`, a group of two is `A1)` `A2)`. Labels are
+derived at render time and never stored, so they renumber themselves.
+
+The client session page draws **one block per group**, so a superset pair sits in a single
+card the way TrueCoach shows it — that is what `exerciseGroups()` is exported for. There is
+one definition of what a pair is, or the block and the `A1)/A2)` numbering could disagree.
+The old blue border and the `⚡ superset` caption are gone with it; the shared block says
+it. Measured at 375px on a real session, grouping is slightly *shorter* than the two cards
+it replaced (5+6 lines: 788px → 768px; 4+4: 604px → 580px), so the "a pair fits one
+screen" constraint from commit 04aca61 still holds. Elsewhere — the editor, the calendar
+cell — group members still render blue.
 
 Two invariants: the first exercise can never have `link_prev` (enforced in both the editor
 and `saveWorkout`), and deleting an exercise clears `linkPrev` on the one after it, so a
@@ -280,10 +289,29 @@ and the day shifts.
 Tailwind 4, CSS-first: no `tailwind.config.*`, the theme lives in `@theme inline` in
 `app/globals.css`.
 
-**The app is white, always.** There is no dark mode and no `dark:` utility anywhere — a
-device set to dark mode still gets the white theme. `color-scheme: light` in `:root` is
-what stops the browser painting form controls, scrollbars and the caret dark underneath.
-Don't reintroduce `@media (prefers-color-scheme: dark)`.
+**The app is white, with one deliberate exception.** There is still no `dark:` utility and
+no `@media (prefers-color-scheme: dark)` anywhere — a device set to dark mode gets the
+white theme on every page. `color-scheme: light` in `:root` stays global; it is what stops
+the browser painting form controls, scrollbars and the caret dark underneath, and flipping
+it is what made the fields unreadable the one time this was tried before.
+
+The exception is **the client's session page**, `/c/[clientId]/w/[workoutId]` — the screen
+they hold in the gym, asked for by a TrueCoach screenshot. It is dark via a `.session-dark`
+container class that **redeclares the theme tokens** (`--background`, `--foreground`,
+`--field-bg`, `--field-border`) rather than touching `:root`. Custom properties inherit, so
+the `NoteBox` textareas inside go dark for free while `/coach`, the week list and the
+history page are untouched. Every other dark colour on that page is an explicit Tailwind
+utility on a component used only there (`SetChecks`, `NoteBox`, `DoneButton`).
+
+Three things that page needs and would break quietly:
+
+- `.session-dark .field-coach` — amber-50 on a dark card glows white-yellow. Two classes
+  deep so it still outranks plain `.field`. The read-only `Coach:` blocks the client sees
+  are `bg-amber-400/10` for the same reason.
+- `.session-dark .field { caret-color }` — `color-scheme` stays light, so the browser
+  paints a dark caret that is invisible in a dark field.
+- `body:has(.session-dark)` — the dark page is a container inside a white body, and iOS
+  overscroll would flash white above and below it.
 
 - **`.field`** is used by every input, textarea and select. It is plain CSS against the
   theme tokens rather than `dark:` utility pairs, specifically so text can never end up the

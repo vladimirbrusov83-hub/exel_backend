@@ -81,17 +81,30 @@ export function exerciseLabel(position: number): string {
 }
 
 /**
+ * The exercise indexes, split into groups: consecutive exercises linked by
+ * `linkPrev` land in one group, everything else is a group of one.
+ *
+ * `exerciseLabels` uses this to number A1) A2), and the client workout page
+ * uses it to draw one block around a superset pair instead of a border around
+ * each half. Both have to agree on what a pair is, so there is one definition.
+ */
+export function exerciseGroups(exercises: { linkPrev: boolean }[]): number[][] {
+  const groups: number[][] = [];
+  exercises.forEach((e, i) => {
+    if (i === 0 || !e.linkPrev) groups.push([i]);
+    else groups[groups.length - 1].push(i);
+  });
+  return groups;
+}
+
+/**
  * Group labels. Consecutive exercises linked by `linkPrev` are one superset, so
  * A) B) becomes A1) A2) when the two are joined.
  */
 export function exerciseLabels(
   exercises: { linkPrev: boolean }[],
 ): { label: string; superset: boolean }[] {
-  const groups: number[][] = [];
-  exercises.forEach((e, i) => {
-    if (i === 0 || !e.linkPrev) groups.push([i]);
-    else groups[groups.length - 1].push(i);
-  });
+  const groups = exerciseGroups(exercises);
 
   const out: { label: string; superset: boolean }[] = [];
   groups.forEach((group, gi) => {

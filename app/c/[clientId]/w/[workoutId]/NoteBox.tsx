@@ -50,14 +50,14 @@ export default function NoteBox({
     <div className="mt-2">
       <div className="mb-0.5 flex items-baseline justify-between">
         <label className={`text-xs font-medium uppercase tracking-wide ${
-          coach ? "text-amber-700" : "text-neutral-500"
+          coach ? "text-amber-300" : "text-white/45"
         }`}>
           {label}
         </label>
         <span className="text-xs" aria-live="polite">
-          {state === "saving" && <span className="text-neutral-500">Saving…</span>}
-          {state === "saved" && <span className="text-green-700">Saved</span>}
-          {state === "error" && <span className="text-red-700">Not saved — try again</span>}
+          {state === "saving" && <span className="text-white/45">Saving…</span>}
+          {state === "saved" && <span className="text-green-400">Saved</span>}
+          {state === "error" && <span className="text-red-300">Not saved — try again</span>}
         </span>
       </div>
       <textarea

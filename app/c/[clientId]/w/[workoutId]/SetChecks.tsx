@@ -59,21 +59,21 @@ export default function SetChecks({
                   await toggleSet(clientId, workoutId, exerciseId, line.index, !isDone);
                 })
               }
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg text-left active:bg-neutral-100"
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg text-left active:bg-white/10"
             >
               <span
                 aria-hidden
                 className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 text-sm leading-none ${
                   isDone
-                    ? "border-green-600 bg-green-600 text-white"
-                    : "border-neutral-300 text-transparent"
+                    ? "border-green-400 bg-green-400 text-neutral-900"
+                    : "border-white/40 text-transparent"
                 }`}
               >
                 ✓
               </span>
               <span
                 className={`font-mono text-base ${
-                  isDone ? "text-neutral-400 line-through" : "text-neutral-700"
+                  isDone ? "text-white/40 line-through" : "text-white/85"
                 }`}
               >
                 {line.text}
