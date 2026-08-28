@@ -256,8 +256,8 @@ export default function CoachBoard({
     <div
       key={w.id}
       className={`flex items-stretch overflow-hidden rounded-lg border ${
-        w.done ? "border-green-600/40 bg-green-50" : "border-neutral-300 bg-neutral-50"
-      } ${copy?.workoutId === w.id ? "ring-2 ring-blue-500" : ""}`}
+        w.done ? "border-green-400/30 bg-green-400/10" : "border-white/20 bg-white/5"
+      } ${copy?.workoutId === w.id ? "ring-2 ring-blue-400" : ""}`}
     >
       <button
         type="button"
@@ -276,7 +276,7 @@ export default function CoachBoard({
           <span className="truncate text-sm font-semibold">{w.title || "Session"}</span>
           {/* The count stays, because the names below are clamped to two lines:
               without it a six-exercise day reads as the four that fit. */}
-          <span className="ml-auto shrink-0 text-xs text-neutral-400">
+          <span className="ml-auto shrink-0 text-xs text-white/40">
             {w.exercises.length}ex
           </span>
           <span className="shrink-0 text-xs">
@@ -285,11 +285,11 @@ export default function CoachBoard({
           </span>
         </span>
         {/* Names only, two lines at most — no set lines, no notes. */}
-        <span className="line-clamp-2 text-xs leading-snug text-neutral-500">
+        <span className="line-clamp-2 text-xs leading-snug text-white/50">
           {w.exercises.map((ex) => ex.name).join(" · ")}
         </span>
       </button>
-      <span className="flex shrink-0 items-center border-l border-neutral-200">
+      <span className="flex shrink-0 items-center border-l border-white/12">
         {rowButtons(w)}
       </span>
     </div>
@@ -302,9 +302,9 @@ export default function CoachBoard({
       key={w.id}
       className={`overflow-hidden rounded-lg border text-left ${
         w.done
-          ? "border-green-600/40 bg-green-50"
-          : "border-neutral-300 bg-neutral-50"
-      } ${copy?.workoutId === w.id ? "ring-2 ring-blue-500" : ""}`}
+          ? "border-green-400/30 bg-green-400/10"
+          : "border-white/20 bg-white/5"
+      } ${copy?.workoutId === w.id ? "ring-2 ring-blue-400" : ""}`}
     >
       <button
         type="button"
@@ -315,21 +315,21 @@ export default function CoachBoard({
         }}
         className="block w-full min-h-11 px-2 py-1 text-left md:min-h-0"
       >
-        <span className="flex items-baseline gap-2 border-b border-neutral-200 pb-1">
+        <span className="flex items-baseline gap-2 border-b border-white/12 pb-1">
           <span className="text-sm" aria-hidden>{w.done ? "✓" : "○"}</span>
           <span className="text-sm font-semibold">{w.title || "Session"}</span>
-          <span className="ml-auto text-xs text-neutral-400">{w.exercises.length}ex</span>
+          <span className="ml-auto text-xs text-white/40">{w.exercises.length}ex</span>
         </span>
 
         {w.exercises.map((ex, i) => (
           <span key={ex.id} className="mt-1 block">
             <span className={`block text-xs font-semibold ${
-              labels[i].superset ? "text-blue-600" : ""
+              labels[i].superset ? "text-blue-300" : ""
             }`}>
               {labels[i].label}) {ex.name}
             </span>
             {ex.freeText.trim() && (
-              <span className="block whitespace-pre-line pl-2 font-mono text-[11px] leading-tight text-neutral-400">
+              <span className="block whitespace-pre-line pl-2 font-mono text-[11px] leading-tight text-white/40">
                 {ex.freeText}
               </span>
             )}
@@ -337,12 +337,12 @@ export default function CoachBoard({
         ))}
 
         {(w.coachNote || w.overallCoachNote || Object.keys(w.coachNotes).length > 0) && (
-          <span className="mt-1 block text-xs text-amber-700">
+          <span className="mt-1 block text-xs text-amber-300">
             📝 {w.coachNote || w.overallCoachNote || "your notes"}
           </span>
         )}
         {(w.overallNote || Object.keys(w.notes).length > 0) && (
-          <span className="mt-1 block text-xs text-blue-700">
+          <span className="mt-1 block text-xs text-blue-200">
             👤 {w.overallNote || "left notes"}
           </span>
         )}
@@ -358,7 +358,7 @@ export default function CoachBoard({
   return (
     <div className="flex h-dvh flex-col">
       {/* ----------------------------------------------------- client pills */}
-      <header className="flex flex-wrap items-center gap-2 border-b border-neutral-200 p-3">
+      <header className="flex flex-wrap items-center gap-2 border-b border-white/12 p-3">
         {clients.map((c) => (
           <button
             key={c.id}
@@ -371,12 +371,12 @@ export default function CoachBoard({
             title="Double-click to rename"
             className={`min-h-11 rounded-full border px-4 text-sm ${
               c.id === clientId
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-300"
+                ? "border-white bg-white text-neutral-900"
+                : "border-white/20"
             }`}
           >{c.name}</button>
         ))}
-        <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm text-neutral-500 underline underline-offset-4">
+        <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4">
           Client view
         </Link>
       </header>
@@ -398,17 +398,17 @@ export default function CoachBoard({
       <div className="flex min-h-0 flex-1 flex-col">
         <nav className="flex items-center gap-2 px-3 py-2">
           <button type="button" onClick={() => scrollToMonth(-1)} aria-label="Previous month"
-            className="size-11 rounded-lg border border-neutral-300">‹</button>
+            className="size-11 rounded-lg border border-white/20">‹</button>
           <button type="button" onClick={() => scrollToMonth(1)} aria-label="Next month"
-            className="size-11 rounded-lg border border-neutral-300">›</button>
+            className="size-11 rounded-lg border border-white/20">›</button>
           <span className="font-medium">{monthLabel(`${visibleMonth}-01`)}</span>
           <button type="button" onClick={scrollToToday}
-            className="ml-auto min-h-11 rounded-lg border border-neutral-300 px-3 text-sm">
+            className="ml-auto min-h-11 rounded-lg border border-white/20 px-3 text-sm">
             Today
           </button>
         </nav>
 
-        <div className="grid grid-cols-7 border-b border-neutral-200 px-3 text-xs text-neutral-500">
+        <div className="grid grid-cols-7 border-b border-white/12 px-3 text-xs text-white/50">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
             <div key={d} className="py-1">{d}</div>
           ))}
@@ -431,19 +431,19 @@ export default function CoachBoard({
                   key={d}
                   data-date={d}
                   onClick={() => onDayClick(d)}
-                  className={`relative min-h-28 border-b border-r border-neutral-200 p-1 ${
-                    copy ? "cursor-copy hover:bg-blue-50" : "cursor-pointer"
+                  className={`relative min-h-28 border-b border-r border-white/12 p-1 ${
+                    copy ? "cursor-copy hover:bg-blue-400/10" : "cursor-pointer"
                   } ${editor?.date === d ? "z-40" : ""}`}
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <span className={`text-xs ${
                       isToday
-                        ? "rounded-full bg-neutral-900 px-1.5 py-0.5 text-white"
-                        : "text-neutral-500"
+                        ? "rounded-full bg-white px-1.5 py-0.5 text-neutral-900"
+                        : "text-white/50"
                     }`}>
                       {first ? `${dayOfMonth(d)} ${monthLabel(d).split(" ")[0].slice(0, 3)}` : dayOfMonth(d)}
                     </span>
-                    {!copy && <span className="text-neutral-300">+</span>}
+                    {!copy && <span className="text-white/25">+</span>}
                   </div>
                   <div className="flex flex-col gap-1">
                     {(byDate.get(d) ?? []).map((w) => block(w))}
@@ -478,12 +478,12 @@ export default function CoachBoard({
       <div className="flex min-h-0 flex-1 flex-col">
         <nav className="flex items-center gap-2 px-3 py-2">
           <button type="button" onClick={() => setWeekOffset((n) => n - 1)} aria-label="Previous week"
-            className="size-11 rounded-lg border border-neutral-300">‹</button>
+            className="size-11 rounded-lg border border-white/20">‹</button>
           <span className="flex-1 text-center text-sm font-medium">{formatWeekRange(weekMonday)}</span>
           <button type="button" onClick={() => setWeekOffset((n) => n + 1)} aria-label="Next week"
-            className="size-11 rounded-lg border border-neutral-300">›</button>
+            className="size-11 rounded-lg border border-white/20">›</button>
           <button type="button" onClick={() => setWeekOffset(0)}
-            className="min-h-11 rounded-lg border border-neutral-300 px-3 text-sm">
+            className="min-h-11 rounded-lg border border-white/20 px-3 text-sm">
             Today
           </button>
         </nav>
@@ -497,12 +497,12 @@ export default function CoachBoard({
           {weekDays.map((d) => {
             const dayWorkouts = byDate.get(d) ?? [];
             return (
-              <section key={d} className="flex items-start gap-2 border-t border-neutral-200 py-0.5">
+              <section key={d} className="flex items-start gap-2 border-t border-white/12 py-0.5">
                 {/* w-14 so "Mon 24" stays on one line — wrapped, it makes the
                     gutter taller than the session beside it. */}
                 <div className="w-14 shrink-0 pt-1">
                   <span className={`block whitespace-nowrap text-sm ${
-                    d === today() ? "font-semibold" : "text-neutral-500"
+                    d === today() ? "font-semibold" : "text-white/50"
                   }`}>
                     {weekdayName(d, true)} {dayOfMonth(d)}
                   </span>
@@ -513,7 +513,7 @@ export default function CoachBoard({
                       type="button"
                       aria-label={`Add a session on ${d}`}
                       onClick={() => onDayClick(d)}
-                      className="mt-1 min-h-11 w-11 rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-400"
+                      className="mt-1 min-h-11 w-11 rounded-lg border border-dashed border-white/20 text-sm text-white/40"
                     >+</button>
                   )}
                 </div>
@@ -524,7 +524,7 @@ export default function CoachBoard({
                     <button
                       type="button"
                       onClick={() => onDayClick(d)}
-                      className="min-h-11 rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-400"
+                      className="min-h-11 rounded-lg border border-dashed border-white/20 text-sm text-white/40"
                     >{copy ? "Drop here" : "+ Add"}</button>
                   )}
                 </div>

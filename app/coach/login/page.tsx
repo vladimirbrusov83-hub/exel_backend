@@ -10,7 +10,7 @@ export default function CoachLogin() {
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-6">
       <h1 className="text-xl font-semibold">Coach</h1>
       <form action={action} className="flex flex-col gap-3">
-        <label htmlFor="passcode" className="text-sm text-neutral-600">
+        <label htmlFor="passcode" className="text-sm text-white/55">
           Passcode
         </label>
         <input
@@ -21,11 +21,11 @@ export default function CoachLogin() {
           autoComplete="current-password"
           className="field min-h-12 px-3 text-base"
         />
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        {error && <p className="text-sm text-red-300">{error}</p>}
         <button
           type="submit"
           disabled={pending}
-          className="min-h-12 rounded-lg bg-neutral-900 font-medium text-white disabled:opacity-60"
+          className="min-h-12 rounded-lg bg-white font-medium text-neutral-900 disabled:opacity-60"
         >
           {pending ? "Checking…" : "Enter"}
         </button>

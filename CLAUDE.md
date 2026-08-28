@@ -289,46 +289,69 @@ and the day shifts.
 Tailwind 4, CSS-first: no `tailwind.config.*`, the theme lives in `@theme inline` in
 `app/globals.css`.
 
-**The app is white, with one deliberate exception.** There is still no `dark:` utility and
-no `@media (prefers-color-scheme: dark)` anywhere — a device set to dark mode gets the
-white theme on every page. `color-scheme: light` in `:root` stays global; it is what stops
-the browser painting form controls, scrollbars and the caret dark underneath, and flipping
-it is what made the fields unreadable the one time this was tried before.
+**The app is dark, always.** Every page — the name picker, the week list, the session, the
+history, and everything under `/coach`. There is no light theme, no `dark:` utility and no
+`@media (prefers-color-scheme: dark)`: a device set to light still gets this. Don't add a
+toggle and don't reintroduce the media query.
 
-The exception is **the two pages the client reads in the gym** — the week list
-`/c/[clientId]` and the session `/c/[clientId]/w/[workoutId]`, asked for by a TrueCoach
-screenshot. They are dark via a `.dark-page` container class that **redeclares the theme
-tokens** (`--background`, `--foreground`, `--field-bg`, `--field-border`) rather than
-touching `:root`. Custom properties inherit, so the `NoteBox` textareas inside go dark for
-free while `/coach`, the name picker at `/` and the history page are untouched. Every other
-dark colour is an explicit Tailwind utility on a component used only on those pages
-(`SetChecks`, `NoteBox`, `DoneButton`).
+`color-scheme: dark` on `:root` is load-bearing. It is what makes the browser paint form
+controls, scrollbars, the caret and the native `<select>` in the editor's history picker to
+match — that `<select>` is the only native control left and it comes out dark for free.
+This was pinned to `light` for a long time, because ee6ded0 had the browser painting
+controls dark underneath a white app; with nothing white left, `dark` is the honest value.
 
-The class is `.dark-page` and not `.session-dark` because it now covers more than the
-session. `#4e4f60` is the shared surface: the exercise blocks on the session page and the
-session rows on the week list, so a row reads as the card it opens into. A done session is
-tinted (`bg-green-400/10`) rather than filled, or a good week goes green all over.
+**`.field` is still the armour, not `color-scheme`.** It sets `background-color` and
+`color` explicitly against the theme tokens rather than relying on `dark:` utility pairs,
+so text can never end up the same colour as the box it sits in. That is the actual fix from
+ee6ded0 and it stays.
 
-Still white and deliberately so: `/` (the name picker, seen once), the history page, and
-everything under `/coach`.
+### Three surfaces, and don't invent a fourth
 
-Three things that page needs and would break quietly:
+| token | value | what it is |
+| --- | --- | --- |
+| `--background` | `#1b1c22` | the page, and `body` |
+| `--field-bg` | `#2c2e39` | anything typed into |
+| `--surface` | `#4e4f60` | a card: the exercise blocks and the week rows |
 
-- `.dark-page .field-coach` — amber-50 on a dark card glows white-yellow. Two classes
-  deep so it still outranks plain `.field`. The read-only `Coach:` blocks the client sees
-  are `bg-amber-400/10` for the same reason.
-- `.dark-page .field { caret-color }` — `color-scheme` stays light, so the browser
-  paints a dark caret that is invisible in a dark field.
-- `body:has(.dark-page)` — the dark page is a container inside a white body, and iOS
-  overscroll would flash white above and below it.
+`--surface` is exposed in `@theme` so a card can say `bg-surface`. The editor popover and
+the desktop history panel use `bg-[var(--background)]`, which is why they followed the
+theme with no edit.
 
-- **`.field`** is used by every input, textarea and select. It is plain CSS against the
-  theme tokens rather than `dark:` utility pairs, specifically so text can never end up the
-  same colour as the box it sits in.
-- **`.chev`** rotates the `<details>` disclosure arrow in plain CSS. Tailwind's
-  `group-open:` variant generates no rule for `[open]` on `<details>`. Don't "simplify" it.
-- `body` uses `var(--font-sans)`. It said `Arial` for a long time, which meant Geist was
-  downloaded on every page load and never displayed.
+### The shade mapping
+
+Applied mechanically across every file, so a new colour should follow it rather than be
+re-decided:
+
+- `neutral-500/600` → `white/50` and `white/55`; `neutral-400` → `white/40`
+- `neutral-200/300/400` borders → `white/12`, `white/20`, `white/30`
+- `bg-neutral-50/100/200` → `bg-white/5`, `bg-white/8`, `bg-white/12`
+- `blue-600/700/800` → `blue-300` / `blue-200`; `amber-700/800/900` → `amber-300` /
+  `amber-200`; `green-600/700/800` → `green-300` / `green-400`; `red-700` → `red-300`
+- the `-50` note backgrounds (`bg-blue-50`, `bg-amber-50`, `bg-green-50`) → a `/10` tint
+
+Two things are inversions rather than shade swaps, and a blind swap gets them wrong:
+
+- **A solid dark button becomes a solid white one** — `bg-neutral-900 text-white` →
+  `bg-white text-neutral-900`. That is Save, the login button, the selected client pill and
+  the today pill. The four `text-neutral-900` uses left in the app are all on one of these.
+- **A done session is tinted, not filled** — `border-green-400/30 bg-green-400/10` in the
+  calendar cell and the week row. Filling it turns a good week green wall to wall.
+
+Blue-is-the-client / amber-is-the-coach survives unchanged; only the shades moved. The
+editor popover's `#ea6c00` border and the copy-mode `bg-blue-600` banner were already
+saturated enough to read on dark and are untouched.
+
+### Checking a colour change
+
+Screenshot at **both** 375×812 and 1280×900. `CoachBoard` mounts a different tree per size
+from `matchMedia` — not a CSS `hidden md:block` pair — so a phone-only pass never renders
+the desktop calendar at all. The states a happy-path pass misses: the editor popover, the
+phone editor sheet, copy mode, the history `<select>`, and the two error strings
+(`/coach/login` wrong passcode, `NoteBox` save failure) which need forcing to appear.
+
+Known and pre-dating this: in the phone editor sheet the set-lines textarea
+(`ml-10 w-[calc(100%-2.5rem)]`) renders a hair past the viewport, though the document
+itself reports zero horizontal overflow.
 
 ## Vertical space on the session page
 

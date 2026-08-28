@@ -21,24 +21,24 @@ function NoteLines({ workout }: { workout: Workout }) {
       {workout.exercises.map((e) => (
         <div key={e.id}>
           {workout.notes[e.id] && (
-            <p className="mt-1 whitespace-pre-line text-blue-800">
-              <span className="text-neutral-500">{e.name}: </span>
+            <p className="mt-1 whitespace-pre-line text-blue-200">
+              <span className="text-white/50">{e.name}: </span>
               {workout.notes[e.id]}
             </p>
           )}
           {workout.coachNotes[e.id] && (
-            <p className="mt-1 whitespace-pre-line text-amber-800">
-              <span className="text-neutral-500">{e.name}: </span>
+            <p className="mt-1 whitespace-pre-line text-amber-200">
+              <span className="text-white/50">{e.name}: </span>
               {workout.coachNotes[e.id]}
             </p>
           )}
         </div>
       ))}
       {workout.overallNote && (
-        <p className="mt-2 whitespace-pre-line text-blue-800">{workout.overallNote}</p>
+        <p className="mt-2 whitespace-pre-line text-blue-200">{workout.overallNote}</p>
       )}
       {workout.overallCoachNote && (
-        <p className="mt-2 whitespace-pre-line text-amber-800">{workout.overallCoachNote}</p>
+        <p className="mt-2 whitespace-pre-line text-amber-200">{workout.overallCoachNote}</p>
       )}
     </>
   );
@@ -50,7 +50,7 @@ function NoteLine({ author, body }: { author: "client" | "coach"; body: string }
   return (
     <p
       className={`mt-0.5 whitespace-pre-line pl-2 text-xs ${
-        author === "coach" ? "text-amber-800" : "text-blue-800"
+        author === "coach" ? "text-amber-200" : "text-blue-200"
       }`}
     >
       <span className="font-medium">{author === "coach" ? "You:" : "Client:"} </span>
@@ -67,17 +67,17 @@ function NoteLine({ author, body }: { author: "client" | "coach"; body: string }
 function PastDay({ workout }: { workout: Workout }) {
   const labels = exerciseLabels(workout.exercises);
   return (
-    <article className="rounded-lg border border-neutral-200 p-2">
+    <article className="rounded-lg border border-white/12 p-2">
       {workout.coachNote && (
-        <p className="whitespace-pre-line text-xs text-amber-700">{workout.coachNote}</p>
+        <p className="whitespace-pre-line text-xs text-amber-300">{workout.coachNote}</p>
       )}
       {workout.exercises.map((ex, i) => (
         <div key={ex.id} className="mt-1.5">
-          <p className={`text-xs font-semibold ${labels[i].superset ? "text-blue-600" : ""}`}>
+          <p className={`text-xs font-semibold ${labels[i].superset ? "text-blue-300" : ""}`}>
             {labels[i].label}) {ex.name}
           </p>
           {ex.freeText.trim() && (
-            <p className="whitespace-pre-line pl-2 font-mono text-xs leading-tight text-neutral-500">
+            <p className="whitespace-pre-line pl-2 font-mono text-xs leading-tight text-white/50">
               {ex.freeText}
             </p>
           )}
@@ -90,7 +90,7 @@ function PastDay({ workout }: { workout: Workout }) {
         </div>
       ))}
       {(workout.overallNote || workout.overallCoachNote) && (
-        <div className="mt-2 border-t border-neutral-200 pt-1">
+        <div className="mt-2 border-t border-white/12 pt-1">
           {workout.overallNote && <NoteLine author="client" body={workout.overallNote} />}
           {workout.overallCoachNote && (
             <NoteLine author="coach" body={workout.overallCoachNote} />
@@ -168,7 +168,7 @@ function History({
   );
 
   const shown = (pickedId && history.find((h) => h.id === pickedId)) || auto;
-  if (!shown) return <p className="p-2 text-xs text-neutral-400">Nothing before this day.</p>;
+  if (!shown) return <p className="p-2 text-xs text-white/40">Nothing before this day.</p>;
 
   return (
     <>
@@ -304,15 +304,15 @@ export default function WorkoutEditor({
   }
 
   const header = (
-    <header className="flex items-center gap-2 border-b border-neutral-200 p-3">
+    <header className="flex items-center gap-2 border-b border-white/12 p-3">
       <button
         type="button"
         onClick={() => void saveAndExit()}
-        className="min-h-11 shrink-0 px-2 text-sm text-neutral-500 underline underline-offset-4"
+        className="min-h-11 shrink-0 px-2 text-sm text-white/50 underline underline-offset-4"
       >
         ‹ Save &amp; close
       </button>
-      <span className="ml-auto text-sm text-neutral-500">{formatLong(date)}</span>
+      <span className="ml-auto text-sm text-white/50">{formatLong(date)}</span>
     </header>
   );
 
@@ -340,24 +340,24 @@ export default function WorkoutEditor({
               // The divider between two exercises. Tapping it supersets them,
               // which is what turns A) B) into A1) A2).
               <div className="flex items-center gap-2 py-1">
-                <span className="h-px flex-1 bg-neutral-200" />
+                <span className="h-px flex-1 bg-white/12" />
                 <button
                   type="button"
                   aria-pressed={ex.linkPrev}
                   onClick={() => patch(i, { linkPrev: !ex.linkPrev })}
                   className={`min-h-11 rounded-full border px-4 text-xs font-medium md:min-h-8 md:px-3 ${
                     ex.linkPrev
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-neutral-300 text-neutral-500"
+                      ? "border-blue-400/60 bg-blue-400/15 text-blue-200"
+                      : "border-white/20 text-white/50"
                   }`}
                 >⚡ Superset</button>
-                <span className="h-px flex-1 bg-neutral-200" />
+                <span className="h-px flex-1 bg-white/12" />
               </div>
             )}
 
             <div className="flex items-center gap-2">
               <span className={`w-8 shrink-0 text-right text-sm font-semibold ${
-                labels[i]?.superset ? "text-blue-600" : "text-neutral-400"
+                labels[i]?.superset ? "text-blue-300" : "text-white/40"
               }`}>
                 {labels[i]?.label})
               </span>
@@ -371,7 +371,7 @@ export default function WorkoutEditor({
                 type="button"
                 aria-label={`Remove ${ex.name || "exercise"}`}
                 onClick={() => removeRow(i)}
-                className="size-11 shrink-0 text-neutral-400"
+                className="size-11 shrink-0 text-white/40"
               >×</button>
             </div>
 
@@ -389,12 +389,12 @@ export default function WorkoutEditor({
       <button
         type="button"
         onClick={() => { touch(); setExercises((list) => [...list, blankRow()]); }}
-        className="mt-3 min-h-12 w-full rounded-xl border border-dashed border-neutral-400 text-sm"
+        className="mt-3 min-h-12 w-full rounded-xl border border-dashed border-white/30 text-sm"
       >+ exercise</button>
 
       {workout && hasNotes(workout) && (
-        <section className="mt-4 rounded-xl bg-neutral-50 p-3 text-sm">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <section className="mt-4 rounded-xl bg-white/5 p-3 text-sm">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-white/50">
             Notes on this day
           </h3>
           {/* Blue is theirs, amber is yours — including the ones you wrote from
@@ -407,12 +407,12 @@ export default function WorkoutEditor({
           underneath instead. Closed by default — the phone is for writing the
           day, the laptop is where the history is read. */}
       {variant === "sheet" && history.length > 0 && (
-        <details className="mt-4 rounded-xl border border-neutral-200">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 p-3 text-sm text-neutral-600">
-            <span className="chev text-neutral-400">›</span>
+        <details className="mt-4 rounded-xl border border-white/12">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 p-3 text-sm text-white/55">
+            <span className="chev text-white/40">›</span>
             Previous sessions
           </summary>
-          <div className="border-t border-neutral-200 p-2">
+          <div className="border-t border-white/12 p-2">
             <History history={history} names={currentNames} date={date} />
           </div>
         </details>
@@ -427,8 +427,8 @@ export default function WorkoutEditor({
   // — an overflow the document never sees. Measure `scrollWidth - clientWidth`
   // on the scroller, not on documentElement, if this width is ever changed.
   const past = (
-    <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-neutral-300 bg-[var(--background)] shadow-xl xl:flex">
-      <h3 className="border-b border-neutral-200 p-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+    <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/20 bg-[var(--background)] shadow-xl xl:flex">
+      <h3 className="border-b border-white/12 p-3 text-xs font-medium uppercase tracking-wide text-white/50">
         Previous sessions
       </h3>
       <div className="overflow-y-auto p-2">
@@ -438,22 +438,22 @@ export default function WorkoutEditor({
   );
 
   const footer = (
-    <footer className="flex items-center gap-2 border-t border-neutral-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      {error && <span className="text-sm text-red-700">{error}</span>}
+    <footer className="flex items-center gap-2 border-t border-white/12 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {error && <span className="text-sm text-red-300">{error}</span>}
       {workout && (
         <button
           type="button"
           onClick={() => {
             if (confirm("Delete this workout?")) void onDelete(workout.id).then(onClose);
           }}
-          className="min-h-12 rounded-lg px-3 text-sm text-red-700"
+          className="min-h-12 rounded-lg px-3 text-sm text-red-300"
         >Delete</button>
       )}
       <button
         type="button"
         disabled={saving}
         onClick={() => void saveAndExit()}
-        className="ml-auto min-h-12 rounded-lg bg-neutral-900 px-5 font-medium text-white disabled:opacity-60"
+        className="ml-auto min-h-12 rounded-lg bg-white px-5 font-medium text-neutral-900 disabled:opacity-60"
       >{saving ? "Saving…" : "Save"}</button>
     </footer>
   );
