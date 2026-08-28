@@ -1,19 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  /* Light only, on purpose — the app is white whatever the phone is set to.
-     `color-scheme` stops the browser painting form controls, scrollbars and
-     the caret dark on a device in dark mode. */
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
-  --field-bg: #ffffff;
-  --field-border: #d4d4d4;
+  /* Dark everywhere, on purpose — the app is dark whatever the phone is set to.
+     There is no light theme and no `prefers-color-scheme` media query; a device
+     set to light still gets this. `color-scheme: dark` is what makes the browser
+     paint form controls, scrollbars, the caret and native <select> menus to
+     match, which is the whole reason it is safe to state it here now that
+     nothing in the app is white.
+
+     Three surfaces, and don't invent a fourth: --background is the page,
+     --field-bg is anything typed into, --surface is a card. */
+  color-scheme: dark;
+  --background: #1b1c22;
+  --foreground: #f2f2f6;
+  --surface: #4e4f60;
+  --field-bg: #2c2e39;
+  --field-border: #474a59;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -41,15 +49,6 @@ body {
   outline: none;
   border-color: var(--foreground);
 }
-/* The coach writing on the client page. A modifier class rather than Tailwind
-   `border-amber-400 bg-amber-50` utilities: .field is plain CSS declared after
-   the Tailwind import, so at equal specificity it wins and the utilities would
-   do nothing. */
-.field-coach {
-  border-color: #fbbf24;          /* amber-400 */
-  background-color: #fffbeb;      /* amber-50  */
-}
-
 .field::placeholder {
   color: color-mix(in srgb, var(--foreground) 45%, transparent);
 }
@@ -64,40 +63,10 @@ details[open] > summary .chev {
   transform: rotate(90deg);
 }
 
-/* ---------------------------------------------------------------------------
-   The pages the client reads in the gym run dark — the week list and the
-   session itself. The tokens are redeclared on a container class rather than
-   on :root, so they inherit down into `.field` (the note boxes go dark for
-   free) while /coach stays white.
-
-   `color-scheme` is deliberately left light globally. Flipping it here is what
-   caused the unreadable dark-mode fields the app was fixed for once already;
-   every dark colour below is set explicitly instead.
-   --------------------------------------------------------------------------- */
-.dark-page {
-  --background: #1b1c22;
-  --foreground: #f2f2f6;
-  --field-bg: #2c2e39;
-  --field-border: #474a59;
-  background: var(--background);
-  color: var(--foreground);
-}
-/* With color-scheme staying light the browser paints a dark caret, which is
-   invisible in a dark field. */
-.dark-page .field {
-  caret-color: var(--foreground);
-}
-.dark-page .field:focus {
-  border-color: #8b8fa6;
-}
-/* The coach's amber box. amber-50 on a dark card glows; this is the same idea
-   at dark-surface weight. Two classes deep so it still outranks plain `.field`. */
-.dark-page .field-coach {
+/* The coach writing on the client page. Declared after `.field`, so at equal
+   specificity it wins — Tailwind utilities would not. amber-50 would glow
+   white-yellow on a dark field, so this is that idea at dark-surface weight. */
+.field-coach {
   border-color: #a4761b;
   background-color: #37301f;
-}
-/* The dark page is a container inside a white body, so an iOS overscroll bounce
-   would flash white above and below it. Paint the body to match. */
-body:has(.dark-page) {
-  background: #1b1c22;
 }

@@ -31,40 +31,40 @@ export default async function History({
     <main className="mx-auto max-w-md p-4 pb-16">
       <Link
         href={`/c/${clientId}`}
-        className="inline-flex min-h-11 items-center text-sm text-neutral-500 underline underline-offset-4"
+        className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
       >
         ‹ Back to the week
       </Link>
       <h1 className="mt-2 text-xl font-semibold">History</h1>
 
       {past.length === 0 && (
-        <p className="mt-6 text-neutral-600">Nothing here yet.</p>
+        <p className="mt-6 text-white/55">Nothing here yet.</p>
       )}
 
       {months.map((m) => (
         <section key={m.key} className="mt-6">
-          <h2 className="sticky top-0 bg-[var(--background)] py-2 text-sm font-medium uppercase tracking-wide text-neutral-500">
+          <h2 className="sticky top-0 bg-[var(--background)] py-2 text-sm font-medium uppercase tracking-wide text-white/50">
             {m.label}
           </h2>
           <ul className="flex flex-col gap-2">
             {m.workouts.map((w) => (
               <li key={w.id}>
-                <details className="rounded-xl border border-neutral-300">
+                <details className="rounded-xl border border-white/20">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-4">
                     <span>
                       <span className="font-medium">{w.title || "Session"}</span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block text-sm text-white/55">
                         {formatLong(w.date)} · {w.exercises.length} exercises
                       </span>
                     </span>
-                    <span aria-hidden className="chev text-neutral-400">
+                    <span aria-hidden className="chev text-white/40">
                       {w.done ? "✓" : "›"}
                     </span>
                   </summary>
 
-                  <div className="border-t border-neutral-200 p-4">
+                  <div className="border-t border-white/12 p-4">
                     {w.coachNote && (
-                      <p className="mb-3 whitespace-pre-line rounded-lg bg-neutral-100 p-2 text-sm">
+                      <p className="mb-3 whitespace-pre-line rounded-lg bg-white/8 p-2 text-sm">
                         {w.coachNote}
                       </p>
                     )}
@@ -73,19 +73,19 @@ export default async function History({
                         <li key={ex.id}>
                           <h3 className="text-sm font-medium">
                             <span className={exerciseLabels(w.exercises)[i].superset
-                              ? "text-blue-600" : "text-neutral-400"}>
+                              ? "text-blue-300" : "text-white/40"}>
                               {exerciseLabels(w.exercises)[i].label}){" "}
                             </span>
                             {ex.name}
                           </h3>
                           <ExerciseLines freeText={ex.freeText} doneSets={ex.doneSets} />
                           {w.notes[ex.id] && (
-                            <p className="mt-1 whitespace-pre-line text-sm text-blue-800">
+                            <p className="mt-1 whitespace-pre-line text-sm text-blue-200">
                               {w.notes[ex.id]}
                             </p>
                           )}
                           {w.coachNotes[ex.id] && (
-                            <p className="mt-1 whitespace-pre-line text-sm text-amber-800">
+                            <p className="mt-1 whitespace-pre-line text-sm text-amber-200">
                               {w.coachNotes[ex.id]}
                             </p>
                           )}
@@ -93,12 +93,12 @@ export default async function History({
                       ))}
                     </ul>
                     {w.overallNote && (
-                      <p className="mt-3 whitespace-pre-line rounded-lg bg-blue-50 p-2 text-sm">
+                      <p className="mt-3 whitespace-pre-line rounded-lg bg-blue-400/10 p-2 text-sm text-blue-100">
                         {w.overallNote}
                       </p>
                     )}
                     {w.overallCoachNote && (
-                      <p className="mt-2 whitespace-pre-line rounded-lg bg-amber-50 p-2 text-sm text-amber-900">
+                      <p className="mt-2 whitespace-pre-line rounded-lg bg-amber-400/10 p-2 text-sm text-amber-100">
                         {w.overallCoachNote}
                       </p>
                     )}
