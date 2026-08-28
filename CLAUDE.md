@@ -321,6 +321,30 @@ Three things that page needs and would break quietly:
 - `body` uses `var(--font-sans)`. It said `Arial` for a long time, which meant Geist was
   downloaded on every page load and never displayed.
 
+## Vertical space on the session page
+
+Asked for "10% more compact" and measured, not eyeballed: 1773px → 1599px of page at
+375×812 on a real 5+6 / 4+4 session. Where it came from, because the obvious lever is the
+wrong one:
+
+**The 44px set row is not the slack.** Nineteen set lines at the `min-h-11` tap target are
+836px — 47% of the page — and trimming them is what commit 04aca61 already ruled out. The
+real slack was the note boxes and the padding around everything.
+
+- **`NoteBox` has a `compact` prop**, on for the per-exercise boxes and off for the two
+  session-level ones. It drops the visible label row (16px × four boxes for the client,
+  eight for the coach) and moves the label to `aria-label`, with the placeholder carrying
+  it on screen. The session-level boxes keep their labels: nothing above them says what
+  they are, where a per-exercise box sits directly under the lift it belongs to.
+- The save status moves to an absolutely-positioned chip over the field's top-right. It
+  renders only while it is saying something — a couple of seconds after blur — so it never
+  covers text anyone is reading.
+- Padding: `pb-16` → `pb-8`, header `text-2xl` → `text-xl`, group `py-2.5` → `py-2`, group
+  gap `2` → `1.5`, in-group gap `mt-4` → `mt-3`, session section `p-4` → `p-3`.
+
+Re-measure before trimming further. The only lever left is the 44px row, which is his rule
+to relax, not ours.
+
 ## Mobile first
 
 Clients read this in the gym on a phone, and the coach programs on one too. Check 375px

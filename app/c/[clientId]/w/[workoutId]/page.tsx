@@ -33,7 +33,7 @@ export default async function WorkoutDetail({
     // textareas inside go dark with the page. Full-bleed min-h-dvh, or a phone
     // shows white gutters and a white overscroll bounce around the dark column.
     <div className="session-dark min-h-dvh">
-      <main className="mx-auto max-w-md p-4 pb-16">
+      <main className="mx-auto max-w-md px-4 pt-2 pb-8">
         <div className="flex items-center justify-between gap-2">
           <Link
             href={`/c/${clientId}`}
@@ -54,13 +54,13 @@ export default async function WorkoutDetail({
           )}
         </div>
 
-        <header className="mt-1 border-b border-white/10 pb-3">
-          <h1 className="text-2xl font-bold tracking-tight">{workout.title || "Session"}</h1>
+        <header className="border-b border-white/10 pb-2">
+          <h1 className="text-xl font-bold tracking-tight">{workout.title || "Session"}</h1>
           <p className="mt-0.5 text-sm text-white/45">{formatLong(workout.date)}</p>
         </header>
 
         {workout.coachNote && (
-          <section className="mt-3 rounded-xl bg-white/8 p-3">
+          <section className="mt-2 rounded-xl bg-white/8 p-2.5">
             <h2 className="text-xs font-medium uppercase tracking-wide text-white/45">
               From your coach
             </h2>
@@ -68,16 +68,16 @@ export default async function WorkoutDetail({
           </section>
         )}
 
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-2 flex flex-col gap-1.5">
           {groups.map((group) => (
             <li
               key={workout.exercises[group[0]].id}
-              className="rounded-xl bg-[#4e4f60] px-3 py-2.5"
+              className="rounded-xl bg-[#4e4f60] px-3 py-2"
             >
               {group.map((i, k) => {
                 const ex = workout.exercises[i];
                 return (
-                  <div key={ex.id} className={k > 0 ? "mt-4" : ""}>
+                  <div key={ex.id} className={k > 0 ? "mt-3" : ""}>
                     <h3 className="flex items-baseline gap-2 font-semibold">
                       <span aria-hidden className="size-2 shrink-0 rounded-full bg-white/45" />
                       <span>
@@ -98,6 +98,7 @@ export default async function WorkoutDetail({
                       initial={workout.notes[ex.id] ?? ""}
                       label="Your notes"
                       placeholder="How did it feel?"
+                      compact
                     />
                     {isCoach ? (
                       <NoteBox
@@ -107,6 +108,7 @@ export default async function WorkoutDetail({
                         label="Coach note"
                         placeholder="Note for this lift"
                         tone="coach"
+                        compact
                       />
                     ) : (
                       workout.coachNotes[ex.id] && (
@@ -123,7 +125,7 @@ export default async function WorkoutDetail({
           ))}
         </ul>
 
-        <section className="mt-3 rounded-xl border border-white/12 p-4">
+        <section className="mt-2 rounded-xl border border-white/12 p-3">
           <NoteBox
             workoutId={workout.id}
             exerciseId={null}
@@ -150,7 +152,7 @@ export default async function WorkoutDetail({
           )}
         </section>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <DoneButton clientId={clientId} workoutId={workout.id} done={workout.done} />
         </div>
       </main>

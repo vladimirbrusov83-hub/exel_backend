@@ -40,7 +40,7 @@ export default function SetChecks({
   const ticked = new Set(done);
 
   return (
-    <ul className="mt-1">
+    <ul className="mt-0.5">
       {setLines(freeText).map((line, n) => {
         if (line.text.trim() === "") return <li key={line.index} aria-hidden className="h-2" />;
         const isDone = ticked.has(line.index);
