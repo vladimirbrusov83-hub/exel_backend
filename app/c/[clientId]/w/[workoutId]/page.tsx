@@ -41,12 +41,25 @@ export default async function WorkoutDetail({
             by tapping a session on /coach, so this is how he fixes a load from
             the gym floor. `?edit=` opens the editor on this day. */}
         {isCoach && (
-          <Link
-            href={`/coach?c=${clientId}&edit=${workout.id}`}
-            className="inline-flex min-h-11 shrink-0 items-center text-sm text-amber-300 underline underline-offset-4"
-          >
-            ✏️ Edit
-          </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            {/* Otherwise this page is a dead end for the coach: "Back to the
+                week" is the client's week, and the person pills he switches
+                people with only exist on the calendar. */}
+            <Link
+              href={`/coach?c=${clientId}`}
+              aria-label="Coach calendar"
+              title="Coach calendar"
+              className="inline-flex size-11 items-center justify-center text-lg"
+            >
+              🏠
+            </Link>
+            <Link
+              href={`/coach?c=${clientId}&edit=${workout.id}`}
+              className="inline-flex min-h-11 items-center text-sm text-amber-300 underline underline-offset-4"
+            >
+              ✏️ Edit
+            </Link>
+          </div>
         )}
       </div>
 
