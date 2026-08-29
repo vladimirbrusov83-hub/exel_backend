@@ -392,7 +392,9 @@ export default function WorkoutEditor({
         className="mt-3 min-h-12 w-full rounded-xl border border-dashed border-white/30 text-sm"
       >+ exercise</button>
 
-      {workout && hasNotes(workout) && (
+      {/* Desktop only. On a phone the coach is writing the day, not reading
+          what was written on it — the notes are there on the client page. */}
+      {variant === "popover" && workout && hasNotes(workout) && (
         <section className="mt-4 rounded-xl bg-white/5 p-3 text-sm">
           <h3 className="text-xs font-medium uppercase tracking-wide text-white/50">
             Notes on this day
