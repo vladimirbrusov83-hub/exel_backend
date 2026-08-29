@@ -31,35 +31,33 @@ export default async function WorkoutDetail({
   return (
     <main className="mx-auto max-w-md px-4 pt-2 pb-8">
       <div className="flex items-center justify-between gap-2">
-        <Link
-          href={`/c/${clientId}`}
-          className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
-        >
-          ‹ Back to the week
-        </Link>
+        {/* The coach reached this page from /coach, the client from their own
+            week, so the way out is not the same door for the two of them. */}
+        {isCoach ? (
+          <Link
+            href={`/coach?c=${clientId}`}
+            className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
+          >
+            🏠 Calendar
+          </Link>
+        ) : (
+          <Link
+            href={`/c/${clientId}`}
+            className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
+          >
+            ‹ Back to the week
+          </Link>
+        )}
         {/* The way back to the editor. On the phone the coach reaches this page
             by tapping a session on /coach, so this is how he fixes a load from
             the gym floor. `?edit=` opens the editor on this day. */}
         {isCoach && (
-          <div className="flex shrink-0 items-center gap-3">
-            {/* Otherwise this page is a dead end for the coach: "Back to the
-                week" is the client's week, and the person pills he switches
-                people with only exist on the calendar. */}
-            <Link
-              href={`/coach?c=${clientId}`}
-              aria-label="Coach calendar"
-              title="Coach calendar"
-              className="inline-flex size-11 items-center justify-center text-lg"
-            >
-              🏠
-            </Link>
-            <Link
-              href={`/coach?c=${clientId}&edit=${workout.id}`}
-              className="inline-flex min-h-11 items-center text-sm text-amber-300 underline underline-offset-4"
-            >
-              ✏️ Edit
-            </Link>
-          </div>
+          <Link
+            href={`/coach?c=${clientId}&edit=${workout.id}`}
+            className="inline-flex min-h-11 shrink-0 items-center text-sm text-amber-300 underline underline-offset-4"
+          >
+            ✏️ Edit
+          </Link>
         )}
       </div>
 
