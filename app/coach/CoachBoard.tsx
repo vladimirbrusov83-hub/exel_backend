@@ -308,6 +308,10 @@ export default function CoachBoard({
 
   const block = (w: Workout) => {
     const labels = exerciseLabels(w.exercises);
+    const openDay = () => {
+      if (copy) void pasteOnto(w.date);
+      else setEditor({ date: w.date, workout: w });
+    };
     return (
     <div
       key={w.id}
@@ -317,21 +321,30 @@ export default function CoachBoard({
           : "border-white/20 bg-white/5"
       } ${copy?.workoutId === w.id ? "ring-2 ring-blue-400" : ""}`}
     >
+      {/* The title row, and the only thing in the cell that is not the editor:
+          copy, move and delete, pinned to its right. They used to sit in a
+          strip along the bottom of the cell, which put them under every set
+          line and note — on a long day that is off the bottom of the column.
+          A separate <button> from the body below because a button may not
+          contain buttons; both open the same editor. */}
+      <div className="flex items-center gap-1 border-b border-white/12 pl-2 pr-1">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); openDay(); }}
+          className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 py-1 text-left md:min-h-0"
+        >
+          <span className="text-sm" aria-hidden>{w.done ? "✓" : "○"}</span>
+          <span className="truncate text-sm font-semibold">{w.title || "Session"}</span>
+          <span className="ml-auto shrink-0 text-xs text-white/40">{w.exercises.length}ex</span>
+        </button>
+        <span className="flex shrink-0 items-center">{rowButtons(w)}</span>
+      </div>
+
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (copy) void pasteOnto(w.date);
-          else setEditor({ date: w.date, workout: w });
-        }}
-        className="block w-full min-h-11 px-2 py-1 text-left md:min-h-0"
+        onClick={(e) => { e.stopPropagation(); openDay(); }}
+        className="block w-full px-2 py-1 text-left"
       >
-        <span className="flex items-baseline gap-2 border-b border-white/12 pb-1">
-          <span className="text-sm" aria-hidden>{w.done ? "✓" : "○"}</span>
-          <span className="text-sm font-semibold">{w.title || "Session"}</span>
-          <span className="ml-auto text-xs text-white/40">{w.exercises.length}ex</span>
-        </span>
-
         {w.exercises.map((ex, i) => (
           <span key={ex.id} className="mt-1 block">
             <span className={`block text-xs font-semibold ${
@@ -368,10 +381,6 @@ export default function CoachBoard({
           </span>
         )}
       </button>
-
-      <div className="flex gap-1 px-1 pb-1">
-        {rowButtons(w)}
-      </div>
     </div>
     );
   };
