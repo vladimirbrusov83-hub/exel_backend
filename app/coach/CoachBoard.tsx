@@ -31,6 +31,17 @@ function calendarDays(): string[] {
   return days;
 }
 
+/**
+ * A note in a calendar cell. Blue is the client, amber is the coach — the same
+ * pairing the editor's history panel uses, so a colour means one thing app-wide.
+ * `span`, not `p`: these sit inside the cell's <button>, which may not contain
+ * block elements.
+ */
+const NOTE_BASE =
+  "mt-0.5 ml-2 block whitespace-pre-line rounded border-l-2 px-1.5 py-0.5 text-[11px] leading-snug";
+const NOTE_CLIENT = `${NOTE_BASE} border-blue-400/60 bg-blue-400/10 text-blue-200`;
+const NOTE_COACH = `${NOTE_BASE} border-amber-400/60 bg-amber-400/10 text-amber-200`;
+
 type CopyState = { workoutId: string; mode: "copy" | "move" } | null;
 
 export default function CoachBoard({
@@ -333,17 +344,27 @@ export default function CoachBoard({
                 {ex.freeText}
               </span>
             )}
+            {/* The notes themselves, on the exercise they were written on —
+                blue is the client, amber is you. The calendar cell is where a
+                week is read, so a summary line ("left notes") was no use: the
+                whole point is seeing what was written without opening the day. */}
+            {w.notes[ex.id] && (
+              <span className={NOTE_CLIENT}>👤 {w.notes[ex.id]}</span>
+            )}
+            {w.coachNotes[ex.id] && (
+              <span className={NOTE_COACH}>📝 {w.coachNotes[ex.id]}</span>
+            )}
           </span>
         ))}
 
-        {(w.coachNote || w.overallCoachNote || Object.keys(w.coachNotes).length > 0) && (
-          <span className="mt-1 block text-xs text-amber-300">
-            📝 {w.coachNote || w.overallCoachNote || "your notes"}
-          </span>
-        )}
-        {(w.overallNote || Object.keys(w.notes).length > 0) && (
-          <span className="mt-1 block text-xs text-blue-200">
-            👤 {w.overallNote || "left notes"}
+        {/* Notes on the day rather than on one exercise, under a rule. */}
+        {(w.coachNote || w.overallNote || w.overallCoachNote) && (
+          <span className="mt-1.5 block border-t border-white/12 pt-1">
+            {w.coachNote && <span className={NOTE_COACH}>📝 {w.coachNote}</span>}
+            {w.overallNote && <span className={NOTE_CLIENT}>👤 {w.overallNote}</span>}
+            {w.overallCoachNote && (
+              <span className={NOTE_COACH}>📝 {w.overallCoachNote}</span>
+            )}
           </span>
         )}
       </button>
