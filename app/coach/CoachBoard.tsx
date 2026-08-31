@@ -9,7 +9,7 @@ import {
 } from "@/lib/dates";
 import { exerciseLabels, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
 import {
-  copyWorkoutAction, deleteWorkoutAction, moveWorkoutAction,
+  addClientAction, copyWorkoutAction, deleteWorkoutAction, moveWorkoutAction,
   renameClientAction, saveWorkoutAction,
 } from "./actions";
 import WorkoutEditor from "./WorkoutEditor";
@@ -406,6 +406,24 @@ export default function CoachBoard({
             }`}
           >{c.name}</button>
         ))}
+        {/* Laptop only — on a phone the pill row is already the full width and
+            the coach adds people at his desk, not between sets. */}
+        {isDesktop && (
+          <button
+            type="button"
+            onClick={() => {
+              const name = prompt("New client's name");
+              if (!name) return;
+              void addClientAction(name).then((id) => {
+                if (id) router.push(`/coach?c=${id}`);
+              });
+            }}
+            title="Add a client"
+            aria-label="Add a client"
+            className="size-11 rounded-full border border-white/20 text-lg leading-none text-white/70 hover:border-white/50 hover:text-white"
+          >+</button>
+        )}
+
         <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4">
           Client view
         </Link>

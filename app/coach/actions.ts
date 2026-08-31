@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { COACH_COOKIE, checkPasscode, coachToken } from "@/lib/auth";
 import { requireCoach } from "@/lib/coach-guard";
 import {
-  copyWorkout, deleteWorkout, moveWorkout, renameClient, saveWorkout,
+  addClient, copyWorkout, deleteWorkout, moveWorkout, renameClient, saveWorkout,
 } from "@/lib/db";
 import type { WorkoutDraft } from "@/lib/types";
 
@@ -62,6 +62,16 @@ export async function copyWorkoutAction(
   await requireCoach();
   await copyWorkout(id, date, clientId);
   revalidatePath("/coach");
+}
+
+export async function addClientAction(name: string): Promise<string | null> {
+  await requireCoach();
+  const clean = name.trim().slice(0, 60);
+  if (!clean) return null;
+  const id = await addClient(clean);
+  revalidatePath("/coach");
+  revalidatePath("/");
+  return id;
 }
 
 export async function renameClientAction(id: string, name: string): Promise<void> {

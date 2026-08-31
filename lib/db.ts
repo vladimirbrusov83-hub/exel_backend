@@ -42,6 +42,16 @@ export async function renameClient(id: string, name: string): Promise<void> {
   await sql`UPDATE clients SET name = ${name} WHERE id = ${id}`;
 }
 
+/** New person, appended after everyone already on the board. Returns their id
+ *  so the coach page can switch straight to them. */
+export async function addClient(name: string): Promise<string> {
+  const rows = (await sql`
+    INSERT INTO clients (name, position)
+    VALUES (${name}, (SELECT coalesce(max(position), -1) + 1 FROM clients))
+    RETURNING id`) as { id: string }[];
+  return rows[0].id;
+}
+
 /* --------------------------------------------------------------- workouts */
 
 type WorkoutRow = {
