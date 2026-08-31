@@ -9,8 +9,8 @@ import {
 } from "@/lib/dates";
 import { exerciseLabels, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
 import {
-  addClientAction, copyWorkoutAction, deleteWorkoutAction, moveWorkoutAction,
-  renameClientAction, saveWorkoutAction,
+  addClientAction, copyWorkoutAction, deleteClientAction, deleteWorkoutAction,
+  moveWorkoutAction, renameClientAction, saveWorkoutAction,
 } from "./actions";
 import WorkoutEditor from "./WorkoutEditor";
 
@@ -422,6 +422,36 @@ export default function CoachBoard({
             aria-label="Add a client"
             className="size-11 rounded-full border border-white/20 text-lg leading-none text-white/70 hover:border-white/50 hover:text-white"
           >+</button>
+        )}
+
+        {/* Deletes whoever is selected, and with them every session ever
+            written for them. Typing the name is the confirmation — a window
+            the coach can dismiss with the spacebar is not enough for a button
+            that takes a year of training with it. Hidden when there is only
+            one person left, which the server refuses anyway. */}
+        {isDesktop && clients.length > 1 && (
+          <button
+            type="button"
+            onClick={() => {
+              const name = clients.find((c) => c.id === clientId)?.name ?? "";
+              const typed = prompt(
+                `Delete ${name} and all ${workouts.length} of their sessions?\n` +
+                `This cannot be undone. Type the name to confirm.`,
+              );
+              if (typed?.trim() !== name) return;
+              /* push *and* refresh: when the URL is already a bare /coach —
+                 the first client is selected by default, not by ?c= — a push
+                 to the same address navigates nowhere and the deleted person
+                 would stay on screen. */
+              void deleteClientAction(clientId).then(() => {
+                router.push("/coach");
+                refresh();
+              });
+            }}
+            title={`Delete ${clients.find((c) => c.id === clientId)?.name ?? "client"}`}
+            aria-label="Delete the selected client"
+            className="size-11 rounded-full border border-white/20 text-lg leading-none text-white/40 hover:border-red-400/60 hover:text-red-300"
+          >&times;</button>
         )}
 
         <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4">

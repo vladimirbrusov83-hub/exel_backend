@@ -52,6 +52,20 @@ export async function addClient(name: string): Promise<string> {
   return rows[0].id;
 }
 
+/**
+ * Removes a client and, by ON DELETE CASCADE, every workout, exercise and note
+ * of theirs. Refuses to remove the last one — an empty `clients` table leaves
+ * both the coach board and the client view with nothing to show and no way
+ * back except `npm run db:push`. Returns false when it refused.
+ */
+export async function deleteClient(id: string): Promise<boolean> {
+  const rows = (await sql`
+    DELETE FROM clients
+    WHERE id = ${id} AND (SELECT count(*) FROM clients) > 1
+    RETURNING id`) as { id: string }[];
+  return rows.length > 0;
+}
+
 /* --------------------------------------------------------------- workouts */
 
 type WorkoutRow = {

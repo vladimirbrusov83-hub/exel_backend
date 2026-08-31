@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { COACH_COOKIE, checkPasscode, coachToken } from "@/lib/auth";
 import { requireCoach } from "@/lib/coach-guard";
 import {
-  addClient, copyWorkout, deleteWorkout, moveWorkout, renameClient, saveWorkout,
+  addClient, copyWorkout, deleteClient, deleteWorkout, moveWorkout,
+  renameClient, saveWorkout,
 } from "@/lib/db";
 import type { WorkoutDraft } from "@/lib/types";
 
@@ -72,6 +73,15 @@ export async function addClientAction(name: string): Promise<string | null> {
   revalidatePath("/coach");
   revalidatePath("/");
   return id;
+}
+
+/** Returns false if the database refused — i.e. this was the last client. */
+export async function deleteClientAction(id: string): Promise<boolean> {
+  await requireCoach();
+  const gone = await deleteClient(id);
+  revalidatePath("/coach");
+  revalidatePath("/");
+  return gone;
 }
 
 export async function renameClientAction(id: string, name: string): Promise<void> {

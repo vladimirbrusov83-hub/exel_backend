@@ -31,7 +31,11 @@ COACH_PASSCODE=    # typed once at /coach/login
 ```
 
 `npm run db:push` applies `db/schema.sql`. It is idempotent — safe to re-run — and seeds
-two clients on an empty database. Rename them by double-clicking a name pill on `/coach`.
+two clients on an empty database. The name pills on `/coach` are the whole client
+manager: double-click one to rename, `+` to add someone, `×` to delete whoever is
+selected along with every session of theirs. `+` and `×` are laptop-only, and the last
+remaining client cannot be deleted — an empty `clients` table leaves no way back into
+the app except `npm run db:push`.
 
 ## The schema, and why it looks like that
 
