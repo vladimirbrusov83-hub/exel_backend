@@ -92,6 +92,14 @@ ALTER TABLE exercises ADD COLUMN IF NOT EXISTS link_prev boolean NOT NULL DEFAUL
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS done_sets int[] NOT NULL DEFAULT '{}';
 DROP TABLE IF EXISTS sets;
 
+-- Optional per-client passcode. NULL means the name on `/` still taps straight
+-- through, which is what everyone starts as. Never the passcode itself: the
+-- column holds `pbkdf2$<iterations>$<salt>$<hash>`, written only by
+-- lib/client-auth.ts. See lib/db.ts — getClients() deliberately returns a
+-- boolean and not this column, because the coach board is a client component
+-- and anything on that type is serialised into the browser.
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS passcode_hash text;
+
 -- Seed: two people. Rename them inline on the coach page.
 INSERT INTO clients (name, position)
 SELECT 'Client 1', 0 WHERE NOT EXISTS (SELECT 1 FROM clients);

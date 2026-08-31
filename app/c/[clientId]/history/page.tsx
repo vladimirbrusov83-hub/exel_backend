@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ExerciseLines from "@/components/ExerciseLines";
+import { requireClientView } from "@/lib/client-guard";
 import { getAllWorkouts, getClient } from "@/lib/db";
 import { formatLong, monthKey, monthLabel, today } from "@/lib/dates";
 import { exerciseLabels } from "@/lib/types";
@@ -11,6 +12,7 @@ export default async function History({
   params,
 }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
+  await requireClientView(clientId);
   const client = await getClient(clientId);
   if (!client) notFound();
 

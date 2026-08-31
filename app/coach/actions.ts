@@ -7,7 +7,7 @@ import { COACH_COOKIE, checkPasscode, coachToken } from "@/lib/auth";
 import { requireCoach } from "@/lib/coach-guard";
 import {
   addClient, copyWorkout, deleteClient, deleteWorkout, moveWorkout,
-  renameClient, saveWorkout,
+  renameClient, saveWorkout, setPasscodeHash,
 } from "@/lib/db";
 import type { WorkoutDraft } from "@/lib/types";
 
@@ -82,6 +82,21 @@ export async function deleteClientAction(id: string): Promise<boolean> {
   revalidatePath("/coach");
   revalidatePath("/");
   return gone;
+}
+
+/**
+ * The only way back for a client who has forgotten their passcode — there is no
+ * email in this app, so nothing can be sent to them. Clearing it puts them back
+ * to tapping through, and they can set a new one from their own page.
+ *
+ * The coach can clear but not read or choose: the passcode is the client's, and
+ * nothing on the server can turn the stored hash back into it.
+ */
+export async function clearClientPasscodeAction(id: string): Promise<void> {
+  await requireCoach();
+  await setPasscodeHash(id, null);
+  revalidatePath("/coach");
+  revalidatePath("/");
 }
 
 export async function renameClientAction(id: string, name: string): Promise<void> {

@@ -1,8 +1,10 @@
 # ClientProgram — working notes
 
-Next.js 15 App Router, TypeScript, Tailwind 4, Neon Postgres. **No login anywhere.**
-Two people pick their own name at `/` and read the week; the coach writes programs at
-`/coach`, behind one shared passcode.
+Next.js 15 App Router, TypeScript, Tailwind 4, Neon Postgres. **No login by default.**
+Clients pick their own name at `/` and read the week; the coach writes programs at
+`/coach`, behind one shared passcode. A client may set an optional passcode of their own —
+see "The client gate" — but nobody has to, and a client without one taps straight through
+exactly as the app always worked.
 
 GitHub: `vladimirbrusov83-hub/exel_backend` (public). Deploy = commit + push; Vercel picks
 it up in ~30s. Never run `vercel --prod`.
@@ -33,7 +35,8 @@ COACH_PASSCODE=    # typed once at /coach/login
 `npm run db:push` applies `db/schema.sql`. It is idempotent — safe to re-run — and seeds
 two clients on an empty database. The name pills on `/coach` are the whole client
 manager: double-click one to rename, `+` to add someone, `×` to delete whoever is
-selected along with every session of theirs. `+` and `×` are laptop-only, and the last
+selected along with every session of theirs, and `🔒` clears that client's own passcode
+when they forget it. `+`, `×` and `🔒` are laptop-only, and the last
 remaining client cannot be deleted — an empty `clients` table leaves no way back into
 the app except `npm run db:push`.
 
@@ -221,6 +224,37 @@ server action calls `requireCoach()` (`lib/coach-guard.ts`) as its first line. K
 there even though the middleware "already does that".
 
 Web Crypto only in `lib/auth.ts`, no `node:crypto` — middleware runs on the edge.
+
+## The client gate
+
+Optional, one per client, chosen by the client on `/c/<id>/passcode`. `clients.passcode_hash`
+NULL means no passcode, which is what everyone starts as and what the whole app assumed
+before this existed.
+
+`lib/client-auth.ts`, kept apart from `lib/auth.ts` so `middleware.ts`'s import graph stays
+edge-thin. The stored value is `pbkdf2$<iterations>$<salt>$<hash>`; the passcode itself is
+never stored and never leaves the server. The cookie is derived from the *stored hash*, not
+from the passcode, so it is worthless anywhere else and every device is signed out the
+moment the passcode changes — which is why `setPasscodeAction` re-issues the cookie after
+saving, or the client would lock themselves out of their own phone by changing it.
+
+Three ways past `clientAllowed()` (`lib/client-guard.ts`): no passcode set; the **coach**
+cookie, because he opens the client view on his phone to write amber notes and must not be
+locked out by someone else's passcode; or the client's own cookie.
+
+Same rule as the coach gate, and it matters more here because there is no middleware at
+all on `/c/*`: the `requireClientView()` redirect at the top of each page is UI, and
+`requireClientAction()` inside the server actions is the boundary. Every client write
+action resolves the owner from the *workout* (`guardWorkout`) rather than trusting the
+`clientId` the browser sent it.
+
+`clients.passcode_hash` is never selected into a `Client` — `getClients()` returns a
+`hasPasscode` boolean instead, because `CoachBoard` is a client component and is handed the
+whole array, so anything on that type is serialised into the browser. The hash has one
+reader, `getPasscodeHash`.
+
+Recovery is the 🔒 on the coach pill row: it clears a passcode, and cannot read one. There
+is no email in this app, so that is the only route back for a client who forgets.
 
 ## Dates
 

@@ -23,7 +23,12 @@ export default async function Home() {
             className="flex min-h-16 items-center justify-between rounded-xl border border-white/20 px-5 text-lg font-medium transition-colors hover:bg-white/5"
           >
             {c.name}
-            <span aria-hidden className="text-white/40">›</span>
+            <span className="flex items-center gap-2 text-white/40">
+              {c.hasPasscode && (
+                <span title="Asks for a passcode" aria-label="Asks for a passcode">🔒</span>
+              )}
+              <span aria-hidden>›</span>
+            </span>
           </Link>
         ))}
         {clients.length === 0 && (

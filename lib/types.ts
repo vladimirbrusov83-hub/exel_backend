@@ -62,7 +62,14 @@ export function setLines(freeText: string): SetLine[] {
 /** Who wrote a note. Decided on the server, never sent by a browser. */
 export type NoteAuthor = "client" | "coach";
 
-export type Client = { id: string; name: string; position: number };
+export type Client = {
+  id: string;
+  name: string;
+  position: number;
+  /** Whether they have set a passcode. Never the passcode or its hash — this
+   *  type is handed to the coach board, which is a client component. */
+  hasPasscode: boolean;
+};
 
 /** What the editor posts back. */
 export type WorkoutDraft = {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireClientView } from "@/lib/client-guard";
 import { getClient, getWorkoutsBetween } from "@/lib/db";
 import { addDays, formatWeekRange, mondayOf, today, weekdayName, dayOfMonth } from "@/lib/dates";
 
@@ -13,6 +14,7 @@ export default async function WeekView({
 }) {
   const { clientId } = await params;
   const { w } = await searchParams;
+  await requireClientView(clientId);
   const client = await getClient(clientId);
   if (!client) notFound();
 
@@ -27,12 +29,23 @@ export default async function WeekView({
           <Link href="/" className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4">
             {client.name}
           </Link>
-          <Link
-            href={`/c/${clientId}/history`}
-            className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
-          >
-            History
-          </Link>
+          {/* wrap, not a measured fit: a long name plus both links is more than
+              375px holds, and a second row is better than History off the edge. */}
+          <div className="flex flex-wrap items-baseline justify-end gap-x-4">
+            <Link
+              href={`/c/${clientId}/passcode`}
+              title={client.hasPasscode ? "Change your passcode" : "Set a passcode"}
+              className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
+            >
+              {client.hasPasscode ? "🔒" : "🔓"} Passcode
+            </Link>
+            <Link
+              href={`/c/${clientId}/history`}
+              className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
+            >
+              History
+            </Link>
+          </div>
         </div>
 
         <nav className="mt-3 flex items-center justify-between gap-2">

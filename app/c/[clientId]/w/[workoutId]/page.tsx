@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { COACH_COOKIE, isCoachToken } from "@/lib/auth";
+import { requireClientView } from "@/lib/client-guard";
 import { getClient, getWorkout } from "@/lib/db";
 import { formatLong } from "@/lib/dates";
 import { exerciseGroups, exerciseLabels } from "@/lib/types";
@@ -15,12 +16,13 @@ export default async function WorkoutDetail({
   params,
 }: { params: Promise<{ clientId: string; workoutId: string }> }) {
   const { clientId, workoutId } = await params;
+  await requireClientView(clientId);
   const [client, workout] = await Promise.all([getClient(clientId), getWorkout(workoutId)]);
   if (!client || !workout || workout.clientId !== clientId) notFound();
 
-  // This page is public. The cookie only decides whether the coach gets his own
-  // amber boxes to type in — the gate on writing one is requireCoach() inside
-  // saveCoachNote, not this.
+  // requireClientView above decides who may read this page at all. This cookie
+  // check decides something else: whether the coach gets his own amber boxes to
+  // type in. The gate on writing one is requireCoach() inside saveCoachNote.
   const isCoach = await isCoachToken((await cookies()).get(COACH_COOKIE)?.value);
 
   const labels = exerciseLabels(workout.exercises);

@@ -26,16 +26,34 @@ export const sql = new Proxy((() => {}) as unknown as Neon, {
 
 /* ---------------------------------------------------------------- clients */
 
+/* `passcode_hash` is never selected into a Client. The coach board is a client
+   component and is handed the whole array, so anything on this type is
+   serialised into the browser — only the boolean crosses. The hash has exactly
+   one reader, `getPasscodeHash`, and it is used on the server. */
 export async function getClients(): Promise<Client[]> {
   const rows = await sql`
-    SELECT id, name, position FROM clients ORDER BY position, name`;
+    SELECT id, name, position, (passcode_hash IS NOT NULL) AS "hasPasscode"
+    FROM clients ORDER BY position, name`;
   return rows as Client[];
 }
 
 export async function getClient(id: string): Promise<Client | null> {
   const rows = (await sql`
-    SELECT id, name, position FROM clients WHERE id = ${id}`) as Client[];
+    SELECT id, name, position, (passcode_hash IS NOT NULL) AS "hasPasscode"
+    FROM clients WHERE id = ${id}`) as Client[];
   return rows[0] ?? null;
+}
+
+/** Server-only. The one place the stored hash is read. */
+export async function getPasscodeHash(id: string): Promise<string | null> {
+  const rows = (await sql`
+    SELECT passcode_hash FROM clients WHERE id = ${id}`) as { passcode_hash: string | null }[];
+  return rows[0]?.passcode_hash ?? null;
+}
+
+/** `null` removes the passcode and puts the client back to tapping through. */
+export async function setPasscodeHash(id: string, hash: string | null): Promise<void> {
+  await sql`UPDATE clients SET passcode_hash = ${hash} WHERE id = ${id}`;
 }
 
 export async function renameClient(id: string, name: string): Promise<void> {
@@ -160,6 +178,14 @@ export async function getAllWorkouts(clientId: string): Promise<Workout[]> {
       FROM workouts WHERE client_id = ${clientId}
      ORDER BY date, created_at`) as WorkoutRow[];
   return hydrate(rows);
+}
+
+/** Whose workout this is, without loading the session. The client write
+ *  actions gate on this rather than on the id the browser sent them. */
+export async function getWorkoutClientId(id: string): Promise<string | null> {
+  const rows = (await sql`
+    SELECT client_id FROM workouts WHERE id = ${id}`) as { client_id: string }[];
+  return rows[0]?.client_id ?? null;
 }
 
 export async function getWorkout(id: string): Promise<Workout | null> {

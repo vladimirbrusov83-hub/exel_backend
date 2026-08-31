@@ -9,8 +9,9 @@ import {
 } from "@/lib/dates";
 import { exerciseLabels, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
 import {
-  addClientAction, copyWorkoutAction, deleteClientAction, deleteWorkoutAction,
-  moveWorkoutAction, renameClientAction, saveWorkoutAction,
+  addClientAction, clearClientPasscodeAction, copyWorkoutAction,
+  deleteClientAction, deleteWorkoutAction, moveWorkoutAction,
+  renameClientAction, saveWorkoutAction,
 } from "./actions";
 import WorkoutEditor from "./WorkoutEditor";
 
@@ -452,6 +453,28 @@ export default function CoachBoard({
             aria-label="Delete the selected client"
             className="size-11 rounded-full border border-white/20 text-lg leading-none text-white/40 hover:border-red-400/60 hover:text-red-300"
           >&times;</button>
+        )}
+
+        {/* Only there when the selected client actually has a passcode, because
+            clearing one that isn't set does nothing. This is the whole recovery
+            route — no email in this app — and it can only clear, never read:
+            the stored hash does not turn back into a passcode. */}
+        {isDesktop && clients.find((c) => c.id === clientId)?.hasPasscode && (
+          <button
+            type="button"
+            onClick={() => {
+              const name = clients.find((c) => c.id === clientId)?.name ?? "";
+              if (!confirm(
+                `Clear ${name}'s passcode?\n\n` +
+                `Their name goes back to tapping straight through, and they can ` +
+                `set a new one from their own page.`,
+              )) return;
+              void clearClientPasscodeAction(clientId).then(refresh);
+            }}
+            title={`Clear ${clients.find((c) => c.id === clientId)?.name ?? "client"}'s passcode`}
+            aria-label="Clear the selected client's passcode"
+            className="size-11 rounded-full border border-white/20 text-sm leading-none text-white/40 hover:border-white/50 hover:text-white"
+          >🔒</button>
         )}
 
         <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4">
