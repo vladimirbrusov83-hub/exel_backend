@@ -289,7 +289,9 @@ and the day shifts.
 - **A ⚡ Superset divider sits between every pair of exercises**, blue when on. This is
   CoachSpace's model and he asked for it by screenshot.
 - **The calendar cell shows the whole session**, exercise names and set lines, not a
-  summary. That is the point of the calendar for him — on the *desktop* calendar.
+  summary. That is the point of the calendar for him — on the *desktop* calendar. It has
+  no exercise count in its title row; see "Printing a session" for why the phone row
+  keeps one and this does not.
 - **The phone week list is a preview, not the session.** One row per session: title, the
   note markers, and the exercise names on a line or two (`line-clamp-2`), no set lines.
   Tap it to read and edit the whole thing. The layout around it is squeezed for the same
@@ -321,6 +323,47 @@ and the day shifts.
 - **Delete is a plain confirm**, not CoachSpace's 5-second undo — that timer loses the
   first delete if you delete twice inside 5s, and skips the delete entirely if you close
   the tab.
+
+## Printing a session
+
+🖨 on a workout row, laptop only, next to 📋 ↕️ 🗑. It prints **that one session**,
+black on white — the program as written, to hand to a client.
+
+The sheet is a separate `.print-only` block rendered as a sibling of the app shell, and
+the shell itself is `.no-print`. Not a print stylesheet laid over the calendar: the app is
+`h-dvh` around an `overflow-y-auto` scroller, which prints as one truncated screen
+whatever colour it is painted. Its CSS lives at the bottom of `globals.css` and states
+every colour outright — the Tailwind utilities in this app are all picked against
+`#1b1c22` and come out pale grey on paper, or white on white. Nothing depends on a
+background fill either, because backgrounds are off by default in the browser print
+dialog.
+
+The button only sets state; `window.print()` waits a frame for React to paint the sheet,
+and `afterprint` unmounts it, or it would also come out of the next ⌘P.
+
+What is on it: title, client name, date, the session note, and the exercises with their
+set lines, labelled through `exerciseLabels` so `A1) A2)` on paper is the same pair it is
+on screen. What is deliberately not: **ticks** — `done_sets` stays off every coach
+surface, and this is a blank program — and the per-exercise and overall notes from either
+author. The session note prints because it is written to be read on the day.
+
+`break-inside: avoid` on each exercise, so a name never lands on one page with its sets on
+the next. Verified by printing a 14-exercise session to PDF: three pages, no split.
+
+Two things in `@media print` that look removable and are not. `:root { color-scheme:
+light }` — the margin box outside `<html>` is canvas, painted by the browser from
+`color-scheme`, and `html { background: #fff }` does not reach it. Take the line out and
+every page comes back with a black 14mm border; that is a measured result, not a worry.
+It does not contradict "the app is dark always", which is about the screen. And the shell
+is `display: none` rather than restyled, because `h-dvh` around an `overflow-y-auto`
+scroller prints as one truncated screen however it is coloured.
+
+**The desktop calendar cell lost its `Nex` count** to make room for 🖨. The count is still
+on the phone week row, where the exercise names are clamped to two lines and it is the
+only way to know a six-exercise day is not the four that fit. The desktop cell writes the
+whole session out below the title, so it never said anything there. It had to go: measured
+at 1280, a 175px column with four buttons *and* the count truncates the title to nothing;
+without the count the title is exactly the width it was before 🖨 existed.
 
 ## Styling
 

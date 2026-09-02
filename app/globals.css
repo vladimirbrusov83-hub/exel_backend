@@ -70,3 +70,77 @@ details[open] > summary .chev {
   border-color: #a4761b;
   background-color: #37301f;
 }
+
+/* ------------------------------------------------------------------ print
+
+   One session, black on white, from the 🖨 on a workout row. The app itself is
+   dark and lives inside `h-dvh` + `overflow-y-auto`, both of which print as a
+   single truncated screen — so the printed session is a separate block outside
+   that shell (`.print-only`) and the shell is hidden (`.no-print`) rather than
+   restyled.
+
+   Backgrounds are off by default in the browser print dialog, so nothing here
+   depends on a fill: black text, white page, hairline rules. */
+.print-only { display: none; }
+
+@media print {
+  @page { margin: 14mm; }
+  /* Not a violation of the dark-everywhere rule — that is about the screen.
+     The margin box outside <html> is canvas, painted by the UA from
+     `color-scheme`, and `html { background: #fff }` does not reach it: without
+     this line every printed page comes out with a black 14mm border. Measured
+     — it was removed once and the PDF proved it. */
+  :root { color-scheme: light; }
+  html, body {
+    height: auto;
+    background: #fff;
+    color: #000;
+  }
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+}
+
+/* The sheet. Every colour is stated here rather than left to a Tailwind
+   utility, because the utilities in this app are all chosen against #1b1c22
+   and print as pale grey on white — or as white on white. */
+.print-sheet {
+  color: #000;
+  font-size: 11pt;
+  line-height: 1.35;
+}
+.print-head {
+  border-bottom: 1.5px solid #000;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+.print-head h1 {
+  font-size: 16pt;
+  font-weight: 700;
+}
+.print-head p {
+  font-size: 10pt;
+  color: #444;
+}
+.print-note {
+  border-left: 2px solid #888;
+  padding-left: 8px;
+  margin-bottom: 12px;
+  white-space: pre-line;
+  font-size: 10pt;
+}
+/* An exercise must not split across a page break: its name on one page and
+   its sets on the next is not a program anyone can read in a gym. */
+.print-exercise {
+  break-inside: avoid;
+  margin-bottom: 10px;
+}
+.print-exercise h2 {
+  font-size: 11pt;
+  font-weight: 700;
+}
+.print-exercise pre {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10pt;
+  padding-left: 14px;
+  white-space: pre-wrap;
+}

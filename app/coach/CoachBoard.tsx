@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  addDays, dayOfMonth, formatWeekRange, mondayOf, monthKey, monthLabel,
+  addDays, dayOfMonth, formatLong, formatWeekRange, mondayOf, monthKey, monthLabel,
   today, toISODate, weekdayName,
 } from "@/lib/dates";
 import { exerciseLabels, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
@@ -59,6 +59,9 @@ export default function CoachBoard({
   const [editor, setEditor] = useState<{ date: string; workout: Workout | null } | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [visibleMonth, setVisibleMonth] = useState(() => monthKey(today()));
+  /** The session the 🖨 was pressed on. Only ever set for the length of one
+   *  print dialog — see the effect below. */
+  const [printing, setPrinting] = useState<Workout | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
   const days = useMemo(calendarDays, []);
@@ -76,6 +79,24 @@ export default function CoachBoard({
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  /**
+   * Printing one session. The button only sets state: the sheet has to be in
+   * the DOM before the dialog opens, so `window.print()` waits a frame for
+   * React to paint it. `afterprint` clears it again — the sheet is
+   * `display: none` on screen, but left mounted it would also come out of the
+   * next ⌘P the coach presses himself.
+   */
+  useEffect(() => {
+    if (!printing) return;
+    const done = () => setPrinting(null);
+    window.addEventListener("afterprint", done);
+    const frame = requestAnimationFrame(() => window.print());
+    return () => {
+      window.removeEventListener("afterprint", done);
+      cancelAnimationFrame(frame);
+    };
+  }, [printing]);
   const byDate = useMemo(() => {
     const m = new Map<string, Workout[]>();
     for (const w of workouts) m.set(w.date, [...(m.get(w.date) ?? []), w]);
@@ -234,6 +255,17 @@ export default function CoachBoard({
   /** 📋 ↕️ 🗑 — the same three on the phone and on the calendar. */
   const rowButtons = (w: Workout) => (
     <>
+      {/* Laptop only, like +, × and 🔒 on the pill row. Two reasons: he prints
+          at his desk, and a fourth 44px button in the phone week row is width
+          that row measurably does not have. */}
+      {isDesktop && (
+        <button
+          type="button"
+          aria-label="Print this workout"
+          onClick={(e) => { e.stopPropagation(); setPrinting(w); }}
+          className="min-h-11 px-2 md:min-h-8 md:px-1"
+        >🖨</button>
+      )}
       <button
         type="button"
         aria-label="Copy this workout"
@@ -307,6 +339,41 @@ export default function CoachBoard({
     </div>
   );
 
+  /**
+   * The printed session: one page of black-on-white, the program as written.
+   *
+   * Deliberately not the calendar cell restyled. Ticked sets stay off every
+   * coach surface, and this is a sheet handed to a client — so no `doneSets`,
+   * and no per-exercise or client notes either. The session note is the one
+   * thing that prints, because it is written to be read on the day.
+   *
+   * Labels come from `exerciseLabels`, so A1) A2) on paper is the same pair it
+   * is on screen. Colours are plain CSS in `globals.css` rather than Tailwind
+   * utilities: every one of those is picked for the dark app and would print
+   * as pale grey on white, or not at all.
+   */
+  const printSheet = (w: Workout) => {
+    const labels = exerciseLabels(w.exercises);
+    const name = clients.find((c) => c.id === w.clientId)?.name ?? "";
+    return (
+      <div className="print-only print-sheet">
+        <header className="print-head">
+          <h1>{w.title || "Session"}</h1>
+          <p>{name} · {formatLong(w.date)}</p>
+        </header>
+
+        {w.coachNote && <p className="print-note">{w.coachNote}</p>}
+
+        {w.exercises.map((ex, i) => (
+          <div key={ex.id} className="print-exercise">
+            <h2>{labels[i].label}) {ex.name}</h2>
+            {ex.freeText.trim() && <pre>{ex.freeText}</pre>}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const block = (w: Workout) => {
     const labels = exerciseLabels(w.exercises);
     const openDay = () => {
@@ -335,8 +402,13 @@ export default function CoachBoard({
           className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 py-1 text-left md:min-h-0"
         >
           <span className="text-sm" aria-hidden>{w.done ? "✓" : "○"}</span>
+          {/* No `Nex` count here, unlike the phone row. The count is there
+              because that row clamps the names to two lines; this cell writes
+              the whole session out below, so it never told you anything — and
+              at a 175px column the four buttons and the count together truncate
+              the title to nothing. Measured at 1280: dropping it puts the title
+              back to exactly the width it had before 🖨 was added. */}
           <span className="truncate text-sm font-semibold">{w.title || "Session"}</span>
-          <span className="ml-auto shrink-0 text-xs text-white/40">{w.exercises.length}ex</span>
         </button>
         <span className="flex shrink-0 items-center">{rowButtons(w)}</span>
       </div>
@@ -387,7 +459,12 @@ export default function CoachBoard({
   };
 
   return (
-    <div className="flex h-dvh flex-col">
+    <>
+    {printing && printSheet(printing)}
+    {/* `no-print` and not a print stylesheet over the top of it: the app is
+        `h-dvh` around an `overflow-y-auto` scroller, which prints as one
+        truncated screen however it is coloured. */}
+    <div className="no-print flex h-dvh flex-col">
       {/* ----------------------------------------------------- client pills */}
       <header className="flex flex-wrap items-center gap-2 border-b border-white/12 p-3">
         {clients.map((c) => (
@@ -650,5 +727,6 @@ export default function CoachBoard({
         />
       )}
     </div>
+    </>
   );
 }
