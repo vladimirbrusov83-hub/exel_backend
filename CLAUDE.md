@@ -434,6 +434,35 @@ Known and pre-dating this: in the phone editor sheet the set-lines textarea
 (`ml-10 w-[calc(100%-2.5rem)]`) renders a hair past the viewport, though the document
 itself reports zero horizontal overflow.
 
+## The client pages, September 2026 pass
+
+A visual pass over everything under `/` and `/c/*`, aimed at "feels like a paid app" without
+touching what the app records. Nothing new is stored; every number shown is counted from
+`done_sets` and `setLines()` at render time.
+
+- **The week page has a seven-day strip** under the week switcher: a white disc on a
+  programmed day, green when done, a ring on today, tap a disc to open that session. The
+  switcher says "This week / Last week / Next week" with the date range under it, and the
+  range alone further out.
+- **Week rows carry a day badge** (`TUE 1`), the exercise and set counts, a `TODAY` tag,
+  and — only once a set has been ticked and the session is not yet done — a thin progress
+  bar and `8 of 18 sets`. That is the checkbox state counted, not an analytic; it goes no
+  further than the client's own week and session pages.
+- **The session page header** has the date above the title, and the same set count with a
+  bar. The `A1` label is a small chip (blue when supersetted), each set row has a faint set
+  number between the tick and the line, and the tick is a circle that pops (`.tick-on`)
+  when it lands. Members of a superset are divided by a hairline inside the shared card.
+  Re-measured at 375px: a 4+4 pair is 553px (was 580), a 5+5 pair 649px, set rows still 44px.
+- **Coach text is amber with a left rule** everywhere the client reads it — session note,
+  per-exercise notes, session-level note, and in history — prefixed `Coach ·`. The
+  client's own notes in history are prefixed `You ·`.
+- **Underlined text links are gone** on the client side: back links are `‹ Week`, history
+  is a pill, the passcode is a lock icon button. `.card` gives every tappable row a small
+  press scale.
+- `layout.tsx` exports `viewport` (`viewportFit: cover`, dark `themeColor`) and
+  `appleWebApp`, and `body` pads for the safe-area insets, so added to the home screen it
+  runs full-bleed with a dark status bar. Zero effect in a normal tab.
+
 ## Vertical space on the session page
 
 Asked for "10% more compact" and measured, not eyeballed: 1773px → 1599px of page at

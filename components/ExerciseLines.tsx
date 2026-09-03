@@ -18,14 +18,19 @@ export default function ExerciseLines({
   const done = new Set(doneSets);
 
   return (
-    <ul className="mt-0.5 font-mono text-sm text-white/55">
+    <ul className="mt-1 font-mono text-sm text-white/65">
       {setLines(freeText).map((line) =>
         line.text.trim() === "" ? (
           <li key={line.index} aria-hidden className="h-2" />
         ) : (
           <li key={line.index} className="flex items-baseline gap-1.5">
-            <span aria-hidden className={done.has(line.index) ? "text-green-400" : "text-transparent"}>
-              ✓
+            <span
+              aria-hidden
+              className={`flex size-3.5 shrink-0 items-center justify-center self-center rounded-full text-[0.55rem] font-bold ${
+                done.has(line.index) ? "bg-green-400 text-neutral-900" : "border border-white/25"
+              }`}
+            >
+              {done.has(line.index) ? "✓" : ""}
             </span>
             <span className={done.has(line.index) ? "text-white/40 line-through" : ""}>
               {line.text}

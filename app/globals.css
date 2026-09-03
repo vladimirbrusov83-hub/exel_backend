@@ -29,6 +29,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Room for the notch and the home indicator when opened from the home
+     screen (viewport-fit=cover in layout.tsx). Zero in a normal browser tab. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
   /* Geist is loaded in layout.tsx and mapped to --font-sans in @theme above.
      This used to say Arial, so the font was downloaded and never displayed. */
   font-family: var(--font-sans), system-ui, sans-serif;
@@ -51,6 +57,27 @@ body {
 }
 .field::placeholder {
   color: color-mix(in srgb, var(--foreground) 45%, transparent);
+}
+
+/* A tappable card: the name rows, the week rows, the history rows. The press
+   feedback is a small scale rather than a colour change, which reads as native
+   on a phone and needs no second colour. */
+.card {
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+.card:active {
+  transform: scale(0.985);
+}
+
+/* The set tick. The box pops slightly when it lands, so a tap between sets
+   feels acknowledged before the round-trip returns. */
+@keyframes tick-pop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.tick-on {
+  animation: tick-pop 180ms ease-out;
 }
 
 /* Week disclosure arrow. Plain CSS rather than a Tailwind group-open variant,

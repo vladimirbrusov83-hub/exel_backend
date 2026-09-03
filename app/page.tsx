@@ -7,12 +7,13 @@ export default async function Home() {
   const clients = await getClients();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-8 p-6">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-10 p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Who&apos;s training?</h1>
-        <p className="mt-1 text-white/55">
-          Tap your name to see this week.
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+          Training program
         </p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight">Who&apos;s training?</h1>
+        <p className="mt-2 text-white/55">Tap your name to see this week.</p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -20,19 +21,25 @@ export default async function Home() {
           <Link
             key={c.id}
             href={`/c/${c.id}`}
-            className="flex min-h-16 items-center justify-between rounded-xl border border-white/20 px-5 text-lg font-medium transition-colors hover:bg-white/5"
+            className="card flex min-h-[4.5rem] items-center gap-4 rounded-2xl bg-surface px-4 text-lg font-semibold"
           >
-            {c.name}
+            <span
+              aria-hidden
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold text-white/90"
+            >
+              {c.name.trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1 truncate">{c.name}</span>
             <span className="flex items-center gap-2 text-white/40">
               {c.hasPasscode && (
-                <span title="Asks for a passcode" aria-label="Asks for a passcode">🔒</span>
+                <span className="text-sm" title="Asks for a passcode" aria-label="Asks for a passcode">🔒</span>
               )}
-              <span aria-hidden>›</span>
+              <span aria-hidden className="text-2xl leading-none">›</span>
             </span>
           </Link>
         ))}
         {clients.length === 0 && (
-          <p className="text-white/55">
+          <p className="rounded-2xl border border-dashed border-white/20 p-6 text-center text-white/55">
             No one set up yet. Add names on the coach page.
           </p>
         )}
@@ -40,9 +47,9 @@ export default async function Home() {
 
       <Link
         href="/coach"
-        className="inline-flex min-h-11 items-center self-start text-sm text-white/50 underline underline-offset-4 hover:text-white"
+        className="inline-flex min-h-11 items-center self-center rounded-full px-4 text-sm text-white/45 transition-colors hover:text-white"
       >
-        Coach
+        Coach sign in
       </Link>
     </main>
   );

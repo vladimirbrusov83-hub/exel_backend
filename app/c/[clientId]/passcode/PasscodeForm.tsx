@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { removePasscodeAction, setPasscodeAction } from "../actions";
 
-const FIELD = "field min-h-12 px-3 text-base";
+const FIELD = "field min-h-13 rounded-xl px-4 text-lg tracking-widest";
 const LABEL = "text-sm text-white/55";
 
 /**
@@ -27,11 +27,11 @@ export default function PasscodeForm({
       <header>
         <Link
           href={`/c/${clientId}`}
-          className="inline-flex min-h-11 items-center text-sm text-white/50 underline underline-offset-4"
+          className="inline-flex min-h-11 items-center gap-1 rounded-full pr-2 text-sm text-white/50"
         >
-          ‹ {name}
+          <span aria-hidden className="text-lg leading-none">‹</span> {name}
         </Link>
-        <h1 className="mt-2 text-xl font-semibold">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">
           {hasPasscode ? "Change your passcode" : "Set a passcode"}
         </h1>
         <p className="mt-1 text-sm text-white/55">
@@ -62,7 +62,7 @@ export default function PasscodeForm({
 
         {setError && <p className="text-sm text-red-300">{setError}</p>}
         <button type="submit" disabled={setting}
-          className="min-h-12 rounded-lg bg-white font-medium text-neutral-900 disabled:opacity-60">
+          className="min-h-12 rounded-xl bg-white font-semibold text-neutral-900 disabled:opacity-60">
           {setting ? "Saving…" : "Save"}
         </button>
       </form>
@@ -76,7 +76,7 @@ export default function PasscodeForm({
             autoComplete="current-password" className={FIELD} />
           {removeError && <p className="text-sm text-red-300">{removeError}</p>}
           <button type="submit" disabled={removing}
-            className="min-h-12 rounded-lg border border-white/20 text-white/70 disabled:opacity-60">
+            className="min-h-12 rounded-xl border border-white/20 text-white/70 disabled:opacity-60">
             {removing ? "Removing…" : "Remove passcode"}
           </button>
         </form>

@@ -39,10 +39,16 @@ export default function SetChecks({
   if (!freeText.trim()) return null;
   const ticked = new Set(done);
 
+  // Set numbers count only real lines, so a blank spacer line does not make
+  // the next set "set 4" on screen while the tick stays keyed on line.index.
+  let setNo = 0;
+
   return (
-    <ul className="mt-0.5">
-      {setLines(freeText).map((line, n) => {
+    <ul className="mt-1">
+      {setLines(freeText).map((line) => {
         if (line.text.trim() === "") return <li key={line.index} aria-hidden className="h-2" />;
+        setNo += 1;
+        const n = setNo;
         const isDone = ticked.has(line.index);
         return (
           <li key={line.index}>
@@ -52,28 +58,36 @@ export default function SetChecks({
               // The set number is in here because a day routinely has the same
               // line three times over — "45*10, 45*10, 45*10" — and a screen
               // reader would otherwise read three identical buttons.
-              aria-label={`${exerciseName}, set ${n + 1}: ${line.text}`}
+              aria-label={`${exerciseName}, set ${n}: ${line.text}`}
               onClick={() =>
                 start(async () => {
                   addOptimistic({ line: line.index, done: !isDone });
                   await toggleSet(clientId, workoutId, exerciseId, line.index, !isDone);
                 })
               }
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg text-left active:bg-white/10"
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg text-left transition-colors active:bg-white/10"
             >
               <span
                 aria-hidden
-                className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 text-sm leading-none ${
+                className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-sm leading-none transition-colors ${
                   isDone
-                    ? "border-green-400 bg-green-400 text-neutral-900"
-                    : "border-white/40 text-transparent"
+                    ? "tick-on border-green-400 bg-green-400 text-neutral-900"
+                    : "border-white/35 text-transparent"
                 }`}
               >
                 ✓
               </span>
               <span
-                className={`font-mono text-base ${
-                  isDone ? "text-white/40 line-through" : "text-white/85"
+                aria-hidden
+                className={`w-4 shrink-0 text-right font-mono text-[0.7rem] ${
+                  isDone ? "text-white/25" : "text-white/40"
+                }`}
+              >
+                {n}
+              </span>
+              <span
+                className={`font-mono text-base tracking-tight ${
+                  isDone ? "text-white/35 line-through" : "text-white/90"
                 }`}
               >
                 {line.text}

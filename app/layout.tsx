@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Training program",
   robots: { index: false, follow: false },
+  // Added to the home screen it opens without the browser chrome and with a
+  // dark status bar, which is how clients actually use it in the gym.
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Training" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1b1c22",
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
