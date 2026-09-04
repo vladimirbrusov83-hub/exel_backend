@@ -21,8 +21,9 @@ export default async function WorkoutDetail({
   if (!client || !workout || workout.clientId !== clientId) notFound();
 
   // requireClientView above decides who may read this page at all. This cookie
-  // check decides something else: whether the coach gets his own amber boxes to
-  // type in. The gate on writing one is requireCoach() inside saveCoachNote.
+  // check now decides one thing only: which way out the back link points. The
+  // page itself is the same read-and-tick view for both of them — the coach
+  // writes on /coach.
   const isCoach = await isCoachToken((await cookies()).get(COACH_COOKIE)?.value);
 
   const labels = exerciseLabels(workout.exercises);
@@ -41,6 +42,7 @@ export default async function WorkoutDetail({
     doneSets += ex.doneSets.filter((n) => valid.has(n)).length;
   }
   const isToday = workout.date === today();
+  const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
 
   return (
     <main className="mx-auto max-w-md px-4 pt-2 pb-10">
@@ -62,49 +64,44 @@ export default async function WorkoutDetail({
             <span aria-hidden className="text-lg leading-none">‹</span> Week
           </Link>
         )}
-        {/* The way back to the editor. On the phone the coach reaches this page
-            by tapping a session on /coach, so this is how he fixes a load from
-            the gym floor. `?edit=` opens the editor on this day. */}
-        {isCoach && (
-          <Link
-            href={`/coach?c=${clientId}&edit=${workout.id}`}
-            className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-400/10"
-          >
-            ✏️ Edit
-          </Link>
-        )}
       </div>
 
-      <header className="pb-3">
+      <header>
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/45">
           {isToday ? "Today · " : ""}{formatLong(workout.date)}
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{workout.title || "Session"}</h1>
         {totalSets > 0 && (
-          <div className="mt-3">
-            <div className="flex items-baseline justify-between text-xs text-white/50">
-              <span>
-                {workout.done
-                  ? "Session done"
-                  : doneSets === 0
-                    ? `${workout.exercises.length} exercises · ${totalSets} sets`
-                    : `${doneSets} of ${totalSets} sets`}
-              </span>
-              {!workout.done && doneSets > 0 && (
-                <span className="font-mono">{Math.round((doneSets / totalSets) * 100)}%</span>
-              )}
-            </div>
-            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden>
-              <div
-                className={`h-full rounded-full transition-[width] duration-300 ${
-                  workout.done ? "bg-green-400" : "bg-white/70"
-                }`}
-                style={{ width: `${workout.done ? 100 : Math.round((doneSets / totalSets) * 100)}%` }}
-              />
-            </div>
+          <div className="mt-3 flex items-baseline justify-between text-xs text-white/50">
+            <span>
+              {workout.done
+                ? "Session done"
+                : doneSets === 0
+                  ? `${workout.exercises.length} exercises · ${totalSets} sets`
+                  : `${doneSets} of ${totalSets} sets`}
+            </span>
+            {!workout.done && doneSets > 0 && <span className="font-mono">{pct}%</span>}
           </div>
         )}
       </header>
+
+      {/* The bar is a sibling of <header>, not a child of it: a sticky element
+          is clipped by its own parent's box, so left inside the header it would
+          scroll away with the date and the title. Out here it pins and they
+          don't, which is the point. `.sticky-bar` carries the notch offset and
+          the solid page background — see globals.css. */}
+      {totalSets > 0 && (
+        <div className="sticky-bar pb-3" aria-hidden>
+          <div className="h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className={`h-full rounded-full transition-[width] duration-300 ${
+                workout.done ? "bg-green-400" : "bg-white/70"
+              }`}
+              style={{ width: `${workout.done ? 100 : pct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {workout.coachNote && (
         <section className="mt-1 rounded-xl border-l-2 border-amber-300 bg-amber-400/8 py-2.5 pl-3 pr-3">
@@ -147,6 +144,15 @@ export default async function WorkoutDetail({
                     freeText={ex.freeText}
                     doneSets={ex.doneSets}
                   />
+                  {/* Anything the coach already wrote on this lift, read-only —
+                      he writes it on /coach now, not here. It stays above the
+                      one box on the card, so it is read before it is answered. */}
+                  {workout.coachNotes[ex.id] && (
+                    <p className="mt-2 whitespace-pre-line rounded-lg border-l-2 border-amber-300 bg-amber-400/10 py-1.5 pl-2.5 pr-2 text-sm text-amber-100">
+                      <span className="font-medium text-amber-300">Coach · </span>
+                      {workout.coachNotes[ex.id]}
+                    </p>
+                  )}
                   <NoteBox
                     workoutId={workout.id}
                     exerciseId={ex.id}
@@ -155,24 +161,6 @@ export default async function WorkoutDetail({
                     placeholder="How did it feel?"
                     compact
                   />
-                  {isCoach ? (
-                    <NoteBox
-                      workoutId={workout.id}
-                      exerciseId={ex.id}
-                      initial={workout.coachNotes[ex.id] ?? ""}
-                      label="Coach note"
-                      placeholder="Note for this lift"
-                      tone="coach"
-                      compact
-                    />
-                  ) : (
-                    workout.coachNotes[ex.id] && (
-                      <p className="mt-2 whitespace-pre-line rounded-lg border-l-2 border-amber-300 bg-amber-400/10 py-1.5 pl-2.5 pr-2 text-sm text-amber-100">
-                        <span className="font-medium text-amber-300">Coach · </span>
-                        {workout.coachNotes[ex.id]}
-                      </p>
-                    )
-                  )}
                 </div>
               );
             })}
@@ -189,23 +177,6 @@ export default async function WorkoutDetail({
           placeholder="Energy, sleep, anything your coach should know"
           rows={2}
         />
-        {isCoach ? (
-          <NoteBox
-            workoutId={workout.id}
-            exerciseId={null}
-            initial={workout.overallCoachNote}
-            label="Coach note on the session"
-            rows={2}
-            tone="coach"
-          />
-        ) : (
-          workout.overallCoachNote && (
-            <p className="mt-3 whitespace-pre-line rounded-lg border-l-2 border-amber-300 bg-amber-400/10 py-1.5 pl-2.5 pr-2 text-sm text-amber-100">
-              <span className="font-medium text-amber-300">Coach · </span>
-              {workout.overallCoachNote}
-            </p>
-          )
-        )}
       </section>
 
       <div className="mt-5">

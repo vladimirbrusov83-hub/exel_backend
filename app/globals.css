@@ -31,7 +31,7 @@ body {
   color: var(--foreground);
   /* Room for the notch and the home indicator when opened from the home
      screen (viewport-fit=cover in layout.tsx). Zero in a normal browser tab. */
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(env(safe-area-inset-top) + 0.5rem);
   padding-bottom: env(safe-area-inset-bottom);
   -webkit-tap-highlight-color: transparent;
   text-rendering: optimizeLegibility;
@@ -90,12 +90,38 @@ details[open] > summary .chev {
   transform: rotate(90deg);
 }
 
-/* The coach writing on the client page. Declared after `.field`, so at equal
-   specificity it wins — Tailwind utilities would not. amber-50 would glow
-   white-yellow on a dark field, so this is that idea at dark-surface weight. */
-.field-coach {
-  border-color: #a4761b;
-  background-color: #37301f;
+/* The session progress bar, pinned while the exercises scroll under it. The
+   page scrolls the viewport — there is no scrolling wrapper — so a sticky
+   element here pins against the viewport, and `top: 0` would pin it under the
+   notch on a home-screen install. Hence the inset.
+
+   `--background` and not a Tailwind utility, so it can never drift from the
+   page behind it and let a card show through. The negative margin full-bleeds
+   it past <main>'s px-4, which the padding then puts back. */
+.sticky-bar {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  background: var(--background);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0.375rem 1rem 0;
+}
+
+/* The strip beside the notch itself. Fixed, not part of the bar's own box, so
+   it costs no height at rest — the alternative, padding on the bar above, opens
+   a 50px hole under the set count on an installed app and closes it again as
+   soon as you scroll. At rest that strip is body's safe-area padding and is
+   already blank; once anything scrolls up into it this is what keeps it page
+   colour. Zero-height in a normal browser tab, where the inset is 0. */
+.sticky-bar::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--background);
 }
 
 /* ------------------------------------------------------------------ print
