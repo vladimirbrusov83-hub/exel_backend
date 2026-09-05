@@ -128,6 +128,13 @@ a small centred window naming the lift and the set line, with one free-text box.
 the value takes the button's place on the row, blue, so the client reads their own rating
 back without opening anything.
 
+**The pill fills the button.** It started as a 26px chip inside a 44px invisible tap area
+and Vladimir missed it mid-session — the target was the right size, but the thumb aims at
+the paint, not at the box. It is now 64×36 of visible pill in the same 44px row. Widths:
+`min-w-16 max-w-28`, so "RIR 1-2" widens it and "left 3 in the tank" ellipses at 112px
+rather than pushing the set line off the row. Measured at 375px with all three: rows still
+44px, zero horizontal overflow, no set line wrapped.
+
 **The value is TEXT and is never parsed**, the same rule the loads follow: "2", "RIR 2",
 "@8", "8-9" all survive as typed, capped at 24 characters. An empty value clears the
 rating rather than storing `""`.

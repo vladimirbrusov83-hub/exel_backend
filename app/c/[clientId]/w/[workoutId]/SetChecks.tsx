@@ -112,10 +112,17 @@ export default function SetChecks({
                 </span>
               </button>
 
-              {/* Rated or not, the button is the same 44px tall and sits in the
-                  same column, so the rows never jump about as sets are rated.
-                  Once there is a value it *is* the label — that is how the client
-                  reads their own rating back without opening anything. */}
+              {/* Rated or not, the button is the same size and sits in the same
+                  column, so the rows never jump about as sets are rated. Once
+                  there is a value it *is* the label — that is how the client
+                  reads their own rating back without opening anything.
+
+                  The visible pill fills the button rather than sitting as a
+                  small chip inside a large invisible tap area: the tap target
+                  was always 44px, but a 26px pill is what the thumb aims at
+                  between sets, and it was missed. 64×36 of actual paint, at the
+                  cost of ~20px off the set line — measured at 375px, the
+                  longest real lines still do not wrap. */}
               <button
                 type="button"
                 aria-label={
@@ -124,16 +131,19 @@ export default function SetChecks({
                     : `${exerciseName}, set ${n}: rate RIR or RPE`
                 }
                 onClick={() => setRating(line.index)}
-                className={`flex min-h-11 shrink-0 items-center justify-center rounded-lg px-2 transition-colors active:bg-white/10 ${
-                  rated ? "min-w-11" : "w-11"
-                }`}
+                // min-w rather than w, so a longer value than "RIR 2" widens the
+                // pill instead of being clipped. Capped, or "left 3 in the tank"
+                // would push the set line off the row.
+                className="flex min-h-11 min-w-16 max-w-28 shrink-0 items-center justify-center rounded-lg transition-colors active:bg-white/10"
               >
+                {/* `block` and a line-height, not a nested flex: `truncate`
+                    needs the text in a block box to put an ellipsis on it. */}
                 <span
                   aria-hidden
-                  className={`rounded-md px-1.5 py-0.5 font-mono leading-none ${
+                  className={`block h-9 w-full truncate rounded-lg px-1.5 text-center font-mono leading-9 ${
                     rated
                       ? "bg-blue-400/20 text-sm font-semibold text-blue-200"
-                      : "bg-white/8 text-[0.6rem] font-semibold tracking-tight text-white/35"
+                      : "bg-white/10 text-xs font-semibold tracking-tight text-white/45"
                   }`}
                 >
                   {rated || "RIR"}
