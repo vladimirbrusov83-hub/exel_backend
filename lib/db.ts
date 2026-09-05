@@ -101,11 +101,12 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
   const ids = workoutRows.map((w) => w.id);
 
   const exRows = (await sql`
-    SELECT id, workout_id, position, name, free_text, link_prev, done_sets
+    SELECT id, workout_id, position, name, free_text, link_prev, done_sets, ratings
       FROM exercises WHERE workout_id = ANY(${ids}::uuid[])
      ORDER BY workout_id, position`) as {
     id: string; workout_id: string; position: number; name: string;
     free_text: string; link_prev: boolean; done_sets: number[] | null;
+    ratings: Record<string, string> | null;
   }[];
 
   const noteRows = (await sql`
@@ -122,6 +123,7 @@ async function hydrate(workoutRows: WorkoutRow[]): Promise<Workout[]> {
       id: e.id, position: e.position, name: e.name,
       freeText: e.free_text, linkPrev: e.link_prev,
       doneSets: e.done_sets ?? [],
+      ratings: e.ratings ?? {},
     });
     exByWorkout.set(e.workout_id, list);
   }
@@ -247,13 +249,16 @@ export async function saveWorkout(draft: WorkoutInput): Promise<string> {
     const exId = match?.id ?? crypto.randomUUID();
     keptIds.push(exId);
     if (match) {
-      // Ticked-off sets are keyed by line number, so they only survive an edit
-      // that leaves the number of lines alone: fixing "95*10" to "100*10" keeps
-      // them, adding or deleting a set line clears them. Without that, a set
-      // inserted at the top slides every tick below it onto the wrong line.
-      // Comparing counts through setLines() and not in SQL keeps one definition
-      // of what a line is. (A *renamed* exercise takes the INSERT path below
-      // with a fresh id, so its ticks go with its notes — same trade as always.)
+      // Ticked-off sets and set ratings are both keyed by line number, so they
+      // only survive an edit that leaves the number of lines alone: fixing
+      // "95*10" to "100*10" keeps them, adding or deleting a set line clears
+      // them. Without that, a set inserted at the top slides every tick and
+      // every rating below it onto the wrong line. The two go together — a
+      // rating is as position-keyed as a tick, so it can never be kept while
+      // the ticks are dropped. Comparing counts through setLines() and not in
+      // SQL keeps one definition of what a line is. (A *renamed* exercise takes
+      // the INSERT path below with a fresh id, so its ticks go with its notes —
+      // same trade as always.)
       const keepTicks = setLines(match.freeText).length === setLines(ex.freeText).length;
       // Two whole statements rather than one with a conditional fragment: the
       // neon driver has no fragment type, so an interpolated sql`` would be
@@ -267,7 +272,8 @@ export async function saveWorkout(draft: WorkoutInput): Promise<string> {
         : sql`
         UPDATE exercises
            SET position = ${i}, name = ${ex.name}, free_text = ${ex.freeText},
-               link_prev = ${i > 0 && ex.linkPrev}, done_sets = '{}'::int[]
+               link_prev = ${i > 0 && ex.linkPrev}, done_sets = '{}'::int[],
+               ratings = '{}'::jsonb
          WHERE id = ${exId} AND workout_id = ${workoutId}`);
     } else {
       statements.push(sql`
@@ -302,8 +308,11 @@ export async function copyWorkout(
   if (!src) return null;
   return saveWorkout({
     id: null, clientId, date, title: src.title, coachNote: src.coachNote,
-    // No doneSets: the rows are inserted fresh, so the copy starts unticked
-    // the same way it starts not-done and without the other person's notes.
+    // Name, sets and the superset link, and nothing else. The rows go through
+    // saveWorkout's INSERT path, which sets neither `done_sets` nor `ratings`,
+    // so the copy starts unticked and unrated the same way it starts not-done
+    // and without the other person's notes. Widening this map would put last
+    // Tuesday's RIR on a session nobody has done yet.
     exercises: src.exercises.map((e) => ({
       name: e.name, freeText: e.freeText, linkPrev: e.linkPrev,
     })),
@@ -350,6 +359,40 @@ export async function setSetDone(
   } else {
     await sql`
       UPDATE exercises SET done_sets = array_remove(done_sets, ${line}::int)
+       WHERE id = ${exerciseId} AND workout_id = ${workoutId}`;
+  }
+}
+
+/**
+ * Writes what the client rated one set — RIR, RPE, or whatever they type. An
+ * empty value clears the rating rather than storing "".
+ *
+ * Same shape as `setSetDone` above, and for the same reasons: `line` is a
+ * 0-based index into `setLines(free_text)`, it is read back and range-checked
+ * here because the action that calls it is public, and each write is a single
+ * statement so two sets rated at once cannot read the same object and overwrite
+ * each other. `||` merges one key into the jsonb; `-` removes one.
+ */
+export async function setSetRating(
+  workoutId: string, exerciseId: string, line: number, value: string,
+): Promise<void> {
+  if (!Number.isInteger(line) || line < 0) return;
+
+  const rows = (await sql`
+    SELECT free_text FROM exercises
+     WHERE id = ${exerciseId} AND workout_id = ${workoutId}`) as { free_text: string }[];
+  if (rows.length === 0 || line >= setLines(rows[0].free_text).length) return;
+
+  const key = String(line);
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    await sql`
+      UPDATE exercises SET ratings = ratings - ${key}
+       WHERE id = ${exerciseId} AND workout_id = ${workoutId}`;
+  } else {
+    await sql`
+      UPDATE exercises
+         SET ratings = ratings || jsonb_build_object(${key}::text, ${trimmed}::text)
        WHERE id = ${exerciseId} AND workout_id = ${workoutId}`;
   }
 }

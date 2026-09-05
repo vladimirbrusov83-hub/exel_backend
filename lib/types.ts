@@ -16,6 +16,13 @@ export type Exercise = {
    * not, so unlike a note this is not split by author.
    */
   doneSets: number[];
+  /**
+   * What the client rated each set, keyed by the same 0-based line number the
+   * ticks use, as a string ("0", "1", …). Free text and never parsed: "2",
+   * "RIR 2", "@8", "8-9" are all valid, the same rule the loads follow. Like a
+   * tick and unlike a note it is not split by author — one set, one rating.
+   */
+  ratings: Record<string, string>;
 };
 
 export type Workout = {

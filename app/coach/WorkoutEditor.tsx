@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatLong, weekdayName } from "@/lib/dates";
-import { exerciseLabels, type Workout, type WorkoutDraft } from "@/lib/types";
+import { exerciseLabels, setLines, type Workout, type WorkoutDraft } from "@/lib/types";
 
 type Row = { name: string; freeText: string; linkPrev: boolean };
 
@@ -77,9 +77,26 @@ function PastDay({ workout }: { workout: Workout }) {
             {labels[i].label}) {ex.name}
           </p>
           {ex.freeText.trim() && (
-            <p className="whitespace-pre-line pl-2 font-mono text-xs leading-tight text-white/50">
-              {ex.freeText}
-            </p>
+            // Line by line rather than one whitespace-pre-line block, because
+            // each line may carry what the client rated that set. Still no
+            // ticks: `done_sets` stays off every coach surface, and a rating is
+            // something the client wrote — the same thing the notes below are.
+            <ul className="pl-2 font-mono text-xs leading-tight text-white/50">
+              {setLines(ex.freeText).map((line) =>
+                line.text.trim() === "" ? (
+                  <li key={line.index} aria-hidden className="h-1.5" />
+                ) : (
+                  <li key={line.index}>
+                    {line.text}
+                    {ex.ratings[String(line.index)] && (
+                      <span className="ml-1.5 font-semibold text-blue-300">
+                        {ex.ratings[String(line.index)]}
+                      </span>
+                    )}
+                  </li>
+                ),
+              )}
+            </ul>
           )}
           {workout.notes[ex.id] && (
             <NoteLine author="client" body={workout.notes[ex.id]} />

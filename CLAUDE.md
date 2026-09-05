@@ -22,8 +22,12 @@ himself.
 So: no progression logic, no suggested loads, no analytics, no accounts. A real database
 is exactly where that temptation comes back. It stays out.
 
-Ticking sets off (below) is the one thing the app records about what happened. It is a
-checkbox the two of them look at, not an input to anything.
+Two things the app records about what happened, and only two: **ticking a set off** and
+**a per-set RIR/RPE rating** (both below). Vladimir asked for the rating in September 2026
+— he and his clients were already writing "100*5 (2)" into the notes by hand, so the app
+now has a box for it. It is still a thing the two of them look at, not an input to
+anything: nothing reads a rating, nothing averages it, nothing suggests a load from it.
+That line has not moved.
 
 ## Setup
 
@@ -42,7 +46,9 @@ the app except `npm run db:push`.
 
 ## The schema, and why it looks like that
 
-Four tables: `clients` → `workouts` → `exercises`, plus `client_notes`.
+Four tables: `clients` → `workouts` → `exercises`, plus `client_notes`. A per-set RIR/RPE
+rating is a `jsonb` column on `exercises`, not a fifth table — it rides the exercise SELECT
+`hydrate()` already makes, which is what keeps that function at four queries.
 
 - **An exercise is a name plus one block of free text**, one line per set, stored exactly
   as typed. There is no `sets` table and nothing is ever parsed into numbers, because real
@@ -66,15 +72,15 @@ Four tables: `clients` → `workouts` → `exercises`, plus `client_notes`.
 - **`client_notes.exercise_id` is the key, not a position index.** CoachSpace keys its
   notes `"0_0"` by position, so reordering an exercise silently moves someone's note onto
   the wrong lift. Do not reintroduce that.
-- **`exercises.done_sets` is the one place a position index survives**, because a set has
-  no id to hang anything on. See "Ticking a set off" below for the rule that keeps it
-  honest.
+- **`exercises.done_sets` and `exercises.ratings` are the one place a position index
+  survives**, because a set has no id to hang anything on. See "Ticking a set off, and
+  rating it" below for the rule that keeps them honest — they are cleared together, always.
 - **Two unique indexes on `client_notes`, not one.** `NULL <> NULL` in Postgres, so a plain
   `UNIQUE (workout_id, exercise_id)` does not stop the overall note (`exercise_id IS NULL`)
   being inserted twice. The partial index `client_notes_overall_author_uniq` is what
   actually prevents duplicate overall notes.
 
-## Ticking a set off
+## Ticking a set off, and rating it
 
 Each set line on the client workout page has a box in front of it. Tap it and that set is
 done: green tick, struck through, greyed. Both of them tap the same box — `SetChecks` is
@@ -102,9 +108,9 @@ its notes do.
 
 Ticks are display only, in both directions. They appear on the client workout page and,
 read-only, on the client history page. They are deliberately **not** in the coach editor,
-the `PastDay` history panel or the desktop calendar cell: "what got done" sitting next to
-the load fields is where progression logic starts arguing for itself, which is the line
-this project draws.
+the `PastDay` history panel, the desktop calendar cell or the print sheet: "what got done"
+sitting next to the load fields is where progression logic starts arguing for itself, which
+is the line this project draws.
 
 The toggle is optimistic — it is tapped between sets on gym wifi and a box that waits for
 a round-trip feels broken. `useOptimistic` layers over the server value, so `toggleSet`
@@ -114,6 +120,41 @@ settles, and with no fresh server data to land on every tick visibly flips back.
 `setSetDone` re-reads the exercise and range-checks the line before writing, because the
 action is public like `saveNote`. Both of its writes are a single statement, so two taps
 landing together cannot read the same array and overwrite each other.
+
+### The RIR/RPE button
+
+To the right of every set line is a second button, `RIR`. Tapping it opens `RatingDialog` —
+a small centred window naming the lift and the set line, with one free-text box. Save and
+the value takes the button's place on the row, blue, so the client reads their own rating
+back without opening anything.
+
+**The value is TEXT and is never parsed**, the same rule the loads follow: "2", "RIR 2",
+"@8", "8-9" all survive as typed, capped at 24 characters. An empty value clears the
+rating rather than storing `""`.
+
+Stored in `exercises.ratings`, a `jsonb` object keyed by **the same 0-based line number the
+ticks use** — `{"0": "RIR 2"}`. That means it carries the tick's fragility exactly, so
+`saveWorkout` clears `ratings` in the same branch and under the same condition it clears
+`done_sets`: an exercise keeps both only while its **number of lines** is unchanged. The
+two can never be separated — a rating is as position-keyed as a tick.
+
+Not split by author, for the tick's reason: there is one rating of one set, and it is the
+client's. The coach answers it in the amber note. `setSetRating` re-reads the exercise and
+range-checks the line exactly as `setSetDone` does, because `saveSetRating` is public.
+
+Unlike the tick it is **not** optimistic: `RatingDialog` saves and closes on a button, a
+deliberate one-at-a-time act, where a tick is tapped between sets and has to feel instant.
+Escape and the backdrop close it *without* saving — the opposite of the coach editor's
+Escape, and deliberately so: there the reflex is getting out of a day being written, here
+it is dismissing a dialog opened by accident mid-session.
+
+**Where the coach reads them.** This is the one place ratings and ticks part company: the
+rating is something the client *wrote*, like a note, so it goes where the notes go. It
+appears on the desktop calendar cell beside the set line, in the editor's `PastDay` history
+panel, and on the client's own history page. Both of those coach surfaces render the set
+lines **line by line** rather than as one `whitespace-pre-line` block, which is why they
+changed. Still no ticks on either, and nothing on the print sheet — that is a blank
+program.
 
 ## Supersets and labels
 
@@ -343,9 +384,9 @@ and `afterprint` unmounts it, or it would also come out of the next ⌘P.
 
 What is on it: title, client name, date, the session note, and the exercises with their
 set lines, labelled through `exerciseLabels` so `A1) A2)` on paper is the same pair it is
-on screen. What is deliberately not: **ticks** — `done_sets` stays off every coach
-surface, and this is a blank program — and the per-exercise and overall notes from either
-author. The session note prints because it is written to be read on the day.
+on screen. What is deliberately not: **ticks and ratings** — this is a blank program to
+hand someone, not a record of a session already done — and the per-exercise and overall
+notes from either author. The session note prints because it is written to be read on the day.
 
 `break-inside: avoid` on each exercise, so a name never lands on one page with its sets on
 the next. Verified by printing a 14-exercise session to PDF: three pages, no split.

@@ -110,7 +110,7 @@ export default async function History({
                               <span className="sr-only">{lbl.label}) </span>
                               {ex.name}
                             </h3>
-                            <ExerciseLines freeText={ex.freeText} doneSets={ex.doneSets} />
+                            <ExerciseLines freeText={ex.freeText} doneSets={ex.doneSets} ratings={ex.ratings} />
                             {w.notes[ex.id] && (
                               <p className="mt-1 whitespace-pre-line text-sm text-blue-200">
                                 <span className="font-medium text-blue-300">You · </span>

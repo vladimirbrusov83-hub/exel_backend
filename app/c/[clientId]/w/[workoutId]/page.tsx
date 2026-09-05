@@ -143,6 +143,7 @@ export default async function WorkoutDetail({
                     exerciseName={ex.name}
                     freeText={ex.freeText}
                     doneSets={ex.doneSets}
+                    ratings={ex.ratings}
                   />
                   {/* Anything the coach already wrote on this lift, read-only —
                       he writes it on /coach now, not here. It stays above the

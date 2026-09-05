@@ -10,7 +10,7 @@ import { requireClientAction } from "@/lib/client-guard";
 import { requireCoach } from "@/lib/coach-guard";
 import {
   getPasscodeHash, getWorkoutClientId, saveNote as saveNoteRow, setDone,
-  setPasscodeHash, setSetDone,
+  setPasscodeHash, setSetDone, setSetRating,
 } from "@/lib/db";
 
 /**
@@ -24,6 +24,9 @@ import {
  * stepped around by passing someone else's id.
  */
 const MAX_NOTE = 2000;
+/** A rating is "2", "RIR 2", "@8", "8-9". Short on purpose — the box for a
+ *  sentence about a lift is the note under it, not this. */
+const MAX_RATING = 24;
 const YEAR = 60 * 60 * 24 * 365;
 
 /** Guard a write by the workout it targets. Returns the real owner. */
@@ -76,6 +79,26 @@ export async function toggleSet(
   await guardWorkout(workoutId);
   await setSetDone(workoutId, exerciseId, line, done);
   revalidatePath(`/c/${clientId}/w/${workoutId}`);
+}
+
+/**
+ * What the client rated one set — how hard it was, in their own words. Public
+ * and narrow in the same way `toggleSet` is: `setSetRating` range-checks the
+ * line against the exercise's own text, and the value is capped here.
+ *
+ * No coach version, for the same reason there is no coach tick: this is the
+ * client saying how the set felt, and the coach answers it in the amber note.
+ * An empty string clears the rating.
+ */
+export async function saveSetRating(
+  clientId: string, workoutId: string, exerciseId: string, line: number, value: string,
+): Promise<void> {
+  await guardWorkout(workoutId);
+  await setSetRating(workoutId, exerciseId, line, value.slice(0, MAX_RATING));
+  revalidatePath(`/c/${clientId}/w/${workoutId}`);
+  // So it is already there when he opens that day in the laptop editor's
+  // history panel, which is where he reads it.
+  revalidatePath("/coach");
 }
 
 export async function markDone(

@@ -7,7 +7,7 @@ import {
   addDays, dayOfMonth, formatLong, formatWeekRange, mondayOf, monthKey, monthLabel,
   today, toISODate, weekdayName,
 } from "@/lib/dates";
-import { exerciseLabels, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
+import { exerciseLabels, setLines, type Client, type Workout, type WorkoutDraft } from "@/lib/types";
 import {
   addClientAction, clearClientPasscodeAction, copyWorkoutAction,
   deleteClientAction, deleteWorkoutAction, moveWorkoutAction,
@@ -426,8 +426,26 @@ export default function CoachBoard({
               {labels[i].label}) {ex.name}
             </span>
             {ex.freeText.trim() && (
-              <span className="block whitespace-pre-line pl-2 font-mono text-[11px] leading-tight text-white/40">
-                {ex.freeText}
+              // Line by line rather than one whitespace-pre-line block, so a
+              // set the client rated can carry its RIR/RPE beside it. This is
+              // the surface a week is actually read on, which is why the
+              // ratings are here and not only in the editor's history panel.
+              // Spans throughout — this whole cell is inside a <button>.
+              <span className="block pl-2 font-mono text-[11px] leading-tight text-white/40">
+                {setLines(ex.freeText).map((line) =>
+                  line.text.trim() === "" ? (
+                    <span key={line.index} aria-hidden className="block h-1" />
+                  ) : (
+                    <span key={line.index} className="block">
+                      {line.text}
+                      {ex.ratings[String(line.index)] && (
+                        <span className="ml-1.5 font-semibold text-blue-300">
+                          {ex.ratings[String(line.index)]}
+                        </span>
+                      )}
+                    </span>
+                  ),
+                )}
               </span>
             )}
             {/* The notes themselves, on the exercise they were written on —

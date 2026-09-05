@@ -4,16 +4,17 @@ import { setLines } from "@/lib/types";
  * The set lines, exactly as the coach typed them, read-only. Monospace so
  * numbers line up down the column.
  *
- * `doneSets` is optional: pass it and the ticked lines get a ✓ and grey out,
- * leave it off and this renders exactly what it always did. The history page
- * shows the ticks this way; only `SetChecks` on the workout page can change one.
+ * `doneSets` and `ratings` are both optional: pass them and the ticked lines get
+ * a ✓ and grey out and the rated ones carry their RIR/RPE chip, leave them off
+ * and this renders exactly what it always did. The history page shows both this
+ * way; only `SetChecks` on the workout page can change either.
  *
- * The line numbering comes from `setLines` and nowhere else — the tick on line 3
- * has to mean the same line here as it does there.
+ * The line numbering comes from `setLines` and nowhere else — the tick and the
+ * rating on line 3 have to mean the same line here as they do there.
  */
 export default function ExerciseLines({
-  freeText, doneSets = [],
-}: { freeText: string; doneSets?: number[] }) {
+  freeText, doneSets = [], ratings = {},
+}: { freeText: string; doneSets?: number[]; ratings?: Record<string, string> }) {
   if (!freeText.trim()) return null;
   const done = new Set(doneSets);
 
@@ -35,6 +36,13 @@ export default function ExerciseLines({
             <span className={done.has(line.index) ? "text-white/40 line-through" : ""}>
               {line.text}
             </span>
+            {/* Never struck through with the line: the rating is what the
+                client said about the set, not part of the set as written. */}
+            {ratings[String(line.index)] && (
+              <span className="rounded px-1 py-0.5 text-[0.7rem] font-semibold leading-none text-blue-200">
+                {ratings[String(line.index)]}
+              </span>
+            )}
           </li>
         ),
       )}

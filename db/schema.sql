@@ -39,13 +39,18 @@ CREATE TABLE IF NOT EXISTS exercises (
   -- group, which is what turns A) B) into A1) A2). Storing the link rather than
   -- a group id means reordering can never leave a dangling group.
   link_prev   boolean NOT NULL DEFAULT false,
-  -- Which of those lines have been ticked off, by line number, 0-based.
+  -- What the client rated a set, keyed by the same 0-based line number as
+  -- `done_sets`, as `{"0": "RIR 2", "1": "@8"}`. The value is TEXT and is never
+  -- parsed — "2", "RIR 2", "8-9" and "left it in the tank" all have to survive,
+  -- same rule as loads. Ratings share `done_sets`' line-number key, so
+  -- `saveWorkout` empties them under exactly the same condition.
   -- The line is the only key a set has — there is no id to hang this on — so
   -- `saveWorkout` empties this whenever the number of lines changes. See the
   -- comment there: without that, inserting a set at the top slides every tick
   -- below it onto the wrong line, which is the CoachSpace "0_0" bug in a new
   -- costume. A tick is shared, not per-author: a set is done or it is not.
-  done_sets   int[] NOT NULL DEFAULT '{}'
+  done_sets   int[] NOT NULL DEFAULT '{}',
+  ratings     jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 -- Deliberately NOT unique. Reordering writes the new positions one row at a
 -- time, so two rows briefly share a position mid-transaction. A unique index
@@ -90,6 +95,7 @@ ALTER TABLE exercises ADD COLUMN IF NOT EXISTS free_text text NOT NULL DEFAULT '
 ALTER TABLE exercises DROP COLUMN IF EXISTS coach_note;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS link_prev boolean NOT NULL DEFAULT false;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS done_sets int[] NOT NULL DEFAULT '{}';
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS ratings jsonb NOT NULL DEFAULT '{}'::jsonb;
 DROP TABLE IF EXISTS sets;
 
 -- Optional per-client passcode. NULL means the name on `/` still taps straight
