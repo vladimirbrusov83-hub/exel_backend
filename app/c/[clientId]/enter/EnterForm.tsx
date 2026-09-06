@@ -32,7 +32,7 @@ export default function EnterForm({
         <button
           type="submit"
           disabled={pending}
-          className="min-h-12 rounded-xl bg-white font-semibold text-neutral-900 disabled:opacity-60"
+          className="min-h-12 rounded-xl ink-fill font-semibold disabled:opacity-60"
         >
           {pending ? "Checking…" : "Enter"}
         </button>

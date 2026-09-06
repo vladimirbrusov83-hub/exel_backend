@@ -62,7 +62,7 @@ export default function PasscodeForm({
 
         {setError && <p className="text-sm text-red-300">{setError}</p>}
         <button type="submit" disabled={setting}
-          className="min-h-12 rounded-xl bg-white font-semibold text-neutral-900 disabled:opacity-60">
+          className="min-h-12 rounded-xl ink-fill font-semibold disabled:opacity-60">
           {setting ? "Saving…" : "Save"}
         </button>
       </form>

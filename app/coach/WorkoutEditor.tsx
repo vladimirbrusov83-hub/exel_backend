@@ -472,7 +472,7 @@ export default function WorkoutEditor({
         type="button"
         disabled={saving}
         onClick={() => void saveAndExit()}
-        className="ml-auto min-h-12 rounded-lg bg-white px-5 font-medium text-neutral-900 disabled:opacity-60"
+        className="ml-auto min-h-12 rounded-lg ink-fill px-5 font-medium disabled:opacity-60"
       >{saving ? "Saving…" : "Save"}</button>
     </footer>
   );

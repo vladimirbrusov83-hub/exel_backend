@@ -418,16 +418,37 @@ without the count the title is exactly the width it was before 🖨 existed.
 Tailwind 4, CSS-first: no `tailwind.config.*`, the theme lives in `@theme inline` in
 `app/globals.css`.
 
-**The app is dark, always.** Every page — the name picker, the week list, the session, the
-history, and everything under `/coach`. There is no light theme, no `dark:` utility and no
-`@media (prefers-color-scheme: dark)`: a device set to light still gets this. Don't add a
-toggle and don't reintroduce the media query.
+**The app follows the phone.** Dark is still the default and still what every screen was
+drawn against; a device set to light now gets a light page instead of a dark one forced on
+it. There is still no toggle and no `dark:` utility anywhere — the switch happens once, in
+`@media (prefers-color-scheme: light)` on `:root` in `globals.css`, which restates the five
+surface tokens, `--ink-glow` and the nine `--accent-*` colours. Nothing else in the app
+knows which scheme is in force.
 
-`color-scheme: dark` on `:root` is load-bearing. It is what makes the browser paint form
-controls, scrollbars, the caret and the native `<select>` in the editor's history picker to
-match — that `<select>` is the only native control left and it comes out dark for free.
-This was pinned to `light` for a long time, because ee6ded0 had the browser painting
-controls dark underneath a white app; with nothing white left, `dark` is the honest value.
+`color-scheme: light dark` on `:root` is load-bearing. It is what makes the browser paint
+form controls, scrollbars, the caret and the native `<select>` in the editor's history
+picker to match whichever scheme won — that `<select>` is the only native control left and
+it comes out right for free.
+
+**`--color-white` is remapped to `--foreground`.** That is the whole reason ~250
+`text-white/40` / `border-white/12` / `bg-white/5` utilities did not have to be rewritten:
+`white` means "the ink", so they land dark on a light page by themselves. The remap only
+holds where a colour sits on the page. Anything painted **on or under a fixed colour** is
+deliberately left out of `@theme` and stated literally at its call site, and must stay
+that way:
+
+- `neutral-900` — the dark text on the green ticks (`ExerciseLines`, `SetChecks`,
+  `DoneButton`, the week-row check). Green stays light in both schemes, so its partner
+  text has to stay dark.
+- `green-400`, `blue-400`, `amber-400`, `red-400` — the fills and the `/8`–`/20` tints.
+- `bg-blue-600` copy banner: its label is a literal `text-[#ffffff]`, not `text-white`.
+- `#ea6c00`, the editor popover border.
+
+**`.ink-fill` replaced `bg-white text-neutral-900`.** The inverted control — Save, the
+login button, the selected client pill, the TODAY pill, the streak badge, Done — is now
+one class in `globals.css` (`background: var(--foreground); color: var(--background)`).
+It could not stay a utility pair, because `neutral-900` has to stay literal for the ticks
+above. Don't reintroduce `bg-white text-neutral-900`.
 
 **`.field` is still the armour, not `color-scheme`.** It sets `background-color` and
 `color` explicitly against the theme tokens rather than relying on `dark:` utility pairs,
@@ -436,11 +457,15 @@ ee6ded0 and it stays.
 
 ### Three surfaces, and don't invent a fourth
 
-| token | value | what it is |
-| --- | --- | --- |
-| `--background` | `#1b1c22` | the page, and `body` |
-| `--field-bg` | `#2c2e39` | anything typed into |
-| `--surface` | `#4e4f60` | a card: the exercise blocks and the week rows |
+| token | dark | light | what it is |
+| --- | --- | --- | --- |
+| `--background` | `#1b1c22` | `#eceef2` | the page, and `body` |
+| `--field-bg` | `#2c2e39` | `#f4f5f8` | anything typed into |
+| `--surface` | `#4e4f60` | `#ffffff` | a card: the exercise blocks and the week rows |
+
+`--foreground` (`#f2f2f6` / `#1b1c22`) and `--field-border` (`#474a59` / `#d2d5de`) switch
+with them. `viewport.themeColor` in `layout.tsx` carries the two `--background` values as a
+`media` pair and has to be kept in step with this table by hand.
 
 `--surface` is exposed in `@theme` so a card can say `bg-surface`. The editor popover and
 the desktop history panel use `bg-[var(--background)]`, which is why they followed the
@@ -460,9 +485,9 @@ re-decided:
 
 Two things are inversions rather than shade swaps, and a blind swap gets them wrong:
 
-- **A solid dark button becomes a solid white one** — `bg-neutral-900 text-white` →
-  `bg-white text-neutral-900`. That is Save, the login button, the selected client pill and
-  the today pill. The four `text-neutral-900` uses left in the app are all on one of these.
+- **A solid dark button becomes the inverted one** — `bg-neutral-900 text-white` →
+  `.ink-fill`. That is Save, the login button, the selected client pill and the today pill.
+  The `text-neutral-900` uses left in the app are all on a green fill instead.
 - **A done session is tinted, not filled** — `border-green-400/30 bg-green-400/10` in the
   calendar cell and the week row. Filling it turns a good week green wall to wall.
 
@@ -472,7 +497,9 @@ saturated enough to read on dark and are untouched.
 
 ### Checking a colour change
 
-Screenshot at **both** 375×812 and 1280×900. `CoachBoard` mounts a different tree per size
+Screenshot at **both** 375×812 and 1280×900, and in **both** schemes — the light one is
+only reachable by changing the OS setting or emulating `prefers-color-scheme`, there is no
+in-app toggle. `CoachBoard` mounts a different tree per size
 from `matchMedia` — not a CSS `hidden md:block` pair — so a phone-only pass never renders
 the desktop calendar at all. The states a happy-path pass misses: the editor popover, the
 phone editor sheet, copy mode, the history `<select>`, and the two error strings
@@ -507,9 +534,14 @@ touching what the app records. Nothing new is stored; every number shown is coun
 - **Underlined text links are gone** on the client side: back links are `‹ Week`, history
   is a pill, the passcode is a lock icon button. `.card` gives every tappable row a small
   press scale.
-- `layout.tsx` exports `viewport` (`viewportFit: cover`, dark `themeColor`) and
+- `layout.tsx` exports `viewport` (`viewportFit: cover`, a two-entry `themeColor`) and
   `appleWebApp`, and `body` pads for the safe-area insets, so added to the home screen it
-  runs full-bleed with a dark status bar. Zero effect in a normal tab.
+  runs full-bleed. Zero effect in a normal tab. `statusBarStyle: "black-translucent"` is
+  what hands the app the notch area that the safe-area padding then pays for — but iOS
+  draws the status bar text white under it regardless of scheme, so on a home-screen
+  install in **light** mode the clock can wash out. Untested on a device; if it shows,
+  the fix is a dark strip over `env(safe-area-inset-top)` in light mode, not a change to
+  `statusBarStyle` (that would zero the inset the sticky bar is built around).
 
 ## Vertical space on the session page
 

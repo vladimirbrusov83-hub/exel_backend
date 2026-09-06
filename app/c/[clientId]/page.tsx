@@ -119,7 +119,7 @@ export default async function WeekView({
                     className={`flex size-9 items-center justify-center rounded-full text-sm font-semibold ${
                       wk.done
                         ? "bg-green-400/20 text-green-300"
-                        : "bg-white text-neutral-900"
+                        : "ink-fill"
                     } ${isToday ? "ring-2 ring-white/60 ring-offset-2 ring-offset-[var(--background)]" : ""}`}
                   >
                     {dayOfMonth(d)}
@@ -183,7 +183,7 @@ export default async function WeekView({
                     <div className="flex items-center gap-2">
                       <span className="truncate font-semibold">{wk.title || "Session"}</span>
                       {isToday && !wk.done && (
-                        <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-neutral-900">
+                        <span className="shrink-0 ink-fill rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide">
                           Today
                         </span>
                       )}

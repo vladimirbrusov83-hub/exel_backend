@@ -16,7 +16,7 @@ export default function DoneButton({
       className={`card flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-semibold transition-colors disabled:opacity-60 ${
         done
           ? "border border-green-400/40 bg-green-400/15 text-green-300"
-          : "bg-white text-neutral-900 shadow-[0_8px_30px_rgba(255,255,255,0.08)]"
+          : "ink-fill shadow-[0_8px_30px_var(--ink-glow)]"
       }`}
     >
       {done ? (

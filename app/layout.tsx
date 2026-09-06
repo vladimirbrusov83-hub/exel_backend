@@ -16,13 +16,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Training program",
   robots: { index: false, follow: false },
-  // Added to the home screen it opens without the browser chrome and with a
-  // dark status bar, which is how clients actually use it in the gym.
+  // Added to the home screen it opens without the browser chrome, which is how
+  // clients actually use it in the gym. black-translucent is what makes iOS
+  // hand the app the notch area, which the safe-area padding in globals.css
+  // then pays for.
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Training" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1b1c22",
+  // One per scheme, so the browser chrome above the page matches the page.
+  // These are the two --background values in globals.css and have to be kept
+  // in step with them by hand.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eceef2" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1c22" },
+  ],
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,

@@ -497,7 +497,7 @@ export default function CoachBoard({
             title="Double-click to rename"
             className={`min-h-11 rounded-full border px-4 text-sm ${
               c.id === clientId
-                ? "border-white bg-white text-neutral-900"
+                ? "border-white ink-fill"
                 : "border-white/20"
             }`}
           >{c.name}</button>
@@ -578,7 +578,7 @@ export default function CoachBoard({
       </header>
 
       {copy && (
-        <div className="flex items-center gap-3 bg-blue-600 px-3 py-2 text-sm text-white">
+        <div className="flex items-center gap-3 bg-blue-600 px-3 py-2 text-sm text-[#ffffff]">
           <span>
             {copy.mode === "copy" ? "Copy" : "Move"} mode — tap any day to drop it.
             You can switch person first.
@@ -634,7 +634,7 @@ export default function CoachBoard({
                   <div className="mb-1 flex items-center justify-between">
                     <span className={`text-xs ${
                       isToday
-                        ? "rounded-full bg-white px-1.5 py-0.5 text-neutral-900"
+                        ? "rounded-full ink-fill px-1.5 py-0.5"
                         : "text-white/50"
                     }`}>
                       {first ? `${dayOfMonth(d)} ${monthLabel(d).split(" ")[0].slice(0, 3)}` : dayOfMonth(d)}

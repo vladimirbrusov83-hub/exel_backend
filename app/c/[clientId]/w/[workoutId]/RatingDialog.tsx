@@ -123,7 +123,7 @@ export default function RatingDialog({
             <button
               type="submit"
               disabled={state === "saving"}
-              className="min-h-11 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 disabled:opacity-60"
+              className="min-h-11 ink-fill rounded-full px-5 text-sm font-semibold disabled:opacity-60"
             >
               {state === "saving" ? "Saving…" : "Save"}
             </button>

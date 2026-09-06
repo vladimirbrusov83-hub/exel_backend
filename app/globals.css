@@ -1,21 +1,75 @@
 @import "tailwindcss";
 
-:root {
-  /* Dark everywhere, on purpose — the app is dark whatever the phone is set to.
-     There is no light theme and no `prefers-color-scheme` media query; a device
-     set to light still gets this. `color-scheme: dark` is what makes the browser
-     paint form controls, scrollbars, the caret and native <select> menus to
-     match, which is the whole reason it is safe to state it here now that
-     nothing in the app is white.
+/* ------------------------------------------------------------------ theme
 
-     Three surfaces, and don't invent a fourth: --background is the page,
-     --field-bg is anything typed into, --surface is a card. */
-  color-scheme: dark;
+   The app follows the phone. Dark is still the default and still what most of
+   this was drawn against, but a device set to light gets a light page rather
+   than a dark one forced on it. `color-scheme: light dark` is what makes the
+   browser paint form controls, scrollbars, the caret and native <select>
+   menus to match whichever one is in force.
+
+   Three surfaces, and don't invent a fourth: --background is the page,
+   --field-bg is anything typed into, --surface is a card.
+
+   Everything else in the app is written as `white/NN` and `neutral-900`
+   Tailwind utilities. Rather than rewrite ~250 of them, `--color-white` is
+   remapped below to --foreground, so `text-white/50` means "ink at 50%" and
+   lands dark on a light page by itself. That trick only works where the
+   colour sits on the page; the handful painted on a fixed background
+   (the blue edit bar, the green ticks) are stated literally at their call
+   sites and must stay that way. */
+:root {
+  color-scheme: light dark;
+
   --background: #1b1c22;
   --foreground: #f2f2f6;
   --surface: #4e4f60;
   --field-bg: #2c2e39;
   --field-border: #474a59;
+
+  /* The glow under the primary button. An alpha of the ink, so it cannot be
+     a white halo on a white page. */
+  --ink-glow: rgba(255, 255, 255, 0.08);
+
+  /* Accents. Blue is the client, amber is the coach, green is done, red is an
+     error — the same four in both schemes, just re-picked for the page they
+     sit on. The pale Tailwind shades below are what the dark app already
+     used; the light column is their readable twin on white. */
+  --accent-blue-soft: #dbeafe;   /* was blue-100  */
+  --accent-blue: #bfdbfe;        /* was blue-200  */
+  --accent-blue-strong: #93c5fd; /* was blue-300  */
+  --accent-amber-soft: #fef3c7;  /* was amber-100 */
+  --accent-amber: #fde68a;       /* was amber-200 */
+  --accent-amber-strong: #fcd34d;/* was amber-300 */
+  --accent-green: #bbf7d0;       /* was green-200 */
+  --accent-green-strong: #86efac;/* was green-300 */
+  --accent-red: #fca5a5;         /* was red-300   */
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* The same ordering as dark, not the same lightness: the page is the
+       flattest of the three and a card is the brightest, so a card lifts off
+       the page in both schemes instead of lifting in one and sinking in the
+       other. A field then sits just under the card it is on. */
+    --background: #eceef2;
+    --foreground: #1b1c22;
+    --surface: #ffffff;
+    --field-bg: #f4f5f8;
+    --field-border: #d2d5de;
+
+    --ink-glow: rgba(0, 0, 0, 0.12);
+
+    --accent-blue-soft: #1e3a8a;
+    --accent-blue: #1e40af;
+    --accent-blue-strong: #1d4ed8;
+    --accent-amber-soft: #78350f;
+    --accent-amber: #92400e;
+    --accent-amber-strong: #b45309;
+    --accent-green: #15803d;
+    --accent-green-strong: #16a34a;
+    --accent-red: #b91c1c;
+  }
 }
 
 @theme inline {
@@ -24,6 +78,23 @@
   --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* The remap. `white` is the ink, so every `text-white/40`,
+     `border-white/12` and `bg-white/5` in the app flips with the scheme.
+     `neutral-900`, `green-400`, `blue-400`, `blue-600` and `amber-400` are
+     deliberately NOT here: they are painted on or under fixed colours and
+     have to stay put. */
+  --color-white: var(--foreground);
+
+  --color-blue-100: var(--accent-blue-soft);
+  --color-blue-200: var(--accent-blue);
+  --color-blue-300: var(--accent-blue-strong);
+  --color-amber-100: var(--accent-amber-soft);
+  --color-amber-200: var(--accent-amber);
+  --color-amber-300: var(--accent-amber-strong);
+  --color-green-200: var(--accent-green);
+  --color-green-300: var(--accent-green-strong);
+  --color-red-300: var(--accent-red);
 }
 
 body {
@@ -57,6 +128,16 @@ body {
 }
 .field::placeholder {
   color: color-mix(in srgb, var(--foreground) 45%, transparent);
+}
+
+/* The filled control: the Save buttons, the TODAY pill, the selected client.
+   Ink on the page in reverse — light-on-dark in dark mode, dark-on-light in
+   light mode. This used to be the utility pair `bg-white text-neutral-900`,
+   which cannot flip, because `neutral-900` also has to stay dark on the green
+   ticks. Stated here once instead. */
+.ink-fill {
+  background-color: var(--foreground);
+  color: var(--background);
 }
 
 /* A tappable card: the name rows, the week rows, the history rows. The press
