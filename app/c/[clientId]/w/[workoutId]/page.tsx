@@ -25,6 +25,9 @@ export default async function WorkoutDetail({
   // page itself is the same read-and-tick view for both of them — the coach
   // writes on /coach.
   const isCoach = await isCoachToken((await cookies()).get(COACH_COOKIE)?.value);
+  // One place for "the calendar this page was opened from": the back arrow and
+  // the Done button both go there, so they cannot drift apart.
+  const backHref = isCoach ? `/coach?c=${clientId}` : `/c/${clientId}`;
 
   const labels = exerciseLabels(workout.exercises);
   // A superset pair is one block, not two bordered cards — same grouping the
@@ -49,21 +52,12 @@ export default async function WorkoutDetail({
       <div className="flex items-center justify-between gap-2">
         {/* The coach reached this page from /coach, the client from their own
             week, so the way out is not the same door for the two of them. */}
-        {isCoach ? (
-          <Link
-            href={`/coach?c=${clientId}`}
-            className="inline-flex min-h-11 items-center gap-1 rounded-full pr-2 text-sm text-white/50"
-          >
-            <span aria-hidden className="text-lg leading-none">‹</span> Calendar
-          </Link>
-        ) : (
-          <Link
-            href={`/c/${clientId}`}
-            className="inline-flex min-h-11 items-center gap-1 rounded-full pr-2 text-sm text-white/50"
-          >
-            <span aria-hidden className="text-lg leading-none">‹</span> Week
-          </Link>
-        )}
+        <Link
+          href={backHref}
+          className="inline-flex min-h-11 items-center gap-1 rounded-full pr-2 text-sm text-white/50"
+        >
+          <span aria-hidden className="text-lg leading-none">‹</span> {isCoach ? "Calendar" : "Week"}
+        </Link>
       </div>
 
       <header>
@@ -181,7 +175,7 @@ export default async function WorkoutDetail({
       </section>
 
       <div className="mt-5">
-        <DoneButton clientId={clientId} workoutId={workout.id} done={workout.done} />
+        <DoneButton clientId={clientId} workoutId={workout.id} done={workout.done} backHref={backHref} />
       </div>
     </main>
   );
