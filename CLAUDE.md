@@ -362,6 +362,12 @@ and the day shifts.
   calendar's mount scroll also honours `edit=`, or the popover mounts off-screen when the
   session is not near today. The desktop cell still opens the editor on click — this is a
   phone change.
+- **The phone week switcher is the client page's**, arrows and all: round `‹ ›`
+  either side, the range big, "This week / Last week / Next week" small under it, and on
+  a week further out that small line becomes `back to this week` — which is what the old
+  separate Today button was. The day strip is deliberately **not** here: the list already
+  has a row per day, and 55px of squares is what tips seven days off a 375×812 screen
+  (measured after this change: 682px of list in 682px of space, exactly full).
 - **You can create a workout from a phone.** CoachSpace hides its calendar on mobile and so
   can only *edit* existing workouts there. The mobile coach view here is a week column with
   a `+ Add` on every day. Don't regress this.

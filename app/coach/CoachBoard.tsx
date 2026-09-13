@@ -251,6 +251,9 @@ export default function CoachBoard({
 
   const weekMonday = addDays(mondayOf(today()), weekOffset * 7);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekMonday, i));
+  const weekLabel = weekOffset === 0 ? "This week"
+    : weekOffset === 1 ? "Next week"
+    : weekOffset === -1 ? "Last week" : null;
 
   /** 📋 ↕️ 🗑 — the same three on the phone and on the calendar. */
   const rowButtons = (w: Workout) => (
@@ -672,16 +675,27 @@ export default function CoachBoard({
       {/* ---------------------------------------------------- mobile: week */}
       {!isDesktop && (
       <div className="flex min-h-0 flex-1 flex-col">
-        <nav className="flex items-center gap-2 px-3 py-2">
+        {/* Same shape as the client's week switcher: round arrows either side,
+            the range big in the middle with "This week" under it. Further out
+            than a week that small line is the way back, which is what the
+            separate Today button used to be — it costs no width here, so the
+            range stops being squeezed between four controls. */}
+        <nav className="flex items-center justify-between gap-2 border-b border-white/12 px-3 py-2">
           <button type="button" onClick={() => setWeekOffset((n) => n - 1)} aria-label="Previous week"
-            className="size-11 rounded-lg border border-white/20">‹</button>
-          <span className="flex-1 text-center text-sm font-medium">{formatWeekRange(weekMonday)}</span>
+            className="card flex size-11 items-center justify-center rounded-full bg-white/8 text-xl">‹</button>
+          <div className="text-center">
+            <div className="text-sm font-semibold">{formatWeekRange(weekMonday)}</div>
+            {weekLabel ? (
+              <div className="text-xs text-white/45">{weekLabel}</div>
+            ) : (
+              <button type="button" onClick={() => setWeekOffset(0)}
+                className="text-xs text-white/50 underline underline-offset-4">
+                back to this week
+              </button>
+            )}
+          </div>
           <button type="button" onClick={() => setWeekOffset((n) => n + 1)} aria-label="Next week"
-            className="size-11 rounded-lg border border-white/20">›</button>
-          <button type="button" onClick={() => setWeekOffset(0)}
-            className="min-h-11 rounded-lg border border-white/20 px-3 text-sm">
-            Today
-          </button>
+            className="card flex size-11 items-center justify-center rounded-full bg-white/8 text-xl">›</button>
         </nav>
 
         {/* The day label is a gutter beside the session rather than a heading
