@@ -515,13 +515,21 @@ A visual pass over everything under `/` and `/c/*`, aimed at "feels like a paid 
 touching what the app records. Nothing new is stored; every number shown is counted from
 `done_sets` and `setLines()` at render time.
 
-- **The week page has a seven-day strip** under the week switcher: a white disc on a
-  programmed day, green when done, a ring on today, tap a disc to open that session. The
-  switcher says "This week / Last week / Next week" with the date range under it, and the
-  range alone further out.
+- **The week page has a seven-day strip** under the greeting: one square card per day,
+  carrying `MON` over `7`, with a dot under a programmed day — green once that session is
+  done — and a ring on today. Tapping a card opens that session. They are links, not a
+  day selector: the page is a `force-dynamic` server component and there is no client-side
+  selected day. At 375px a cell is 46×55, so `grid-cols-7 gap-1` is the widest the gap can
+  go and still clear the 44px rule — `gap-1.5` puts it at 43.8.
+- **The week switcher is a `.sticky-bar`**, above the greeting, so moving between weeks
+  stays reachable once the sessions scroll under it. The date range is the big line and
+  "This week / Last week / Next week" the small one under it; further out than one week
+  that small line becomes the `back to this week` link instead.
 - **Week rows carry a day badge** (`TUE 1`), the exercise and set counts, a `TODAY` tag,
   and — only once a set has been ticked and the session is not yet done — a thin progress
-  bar and `8 of 18 sets`. That is the checkbox state counted, not an analytic; it goes no
+  bar and `8 of 18 sets`. Under that, the exercise names joined with ` · `, clamped to two
+  lines, so the client sees what the day is without opening it. Duplicates are **not**
+  collapsed (the same lift twice is two rows) and there are no A1/A2 labels here. That is the checkbox state counted, not an analytic; it goes no
   further than the client's own week and session pages.
 - **The session page header** has the date above the title, and the same set count with a
   bar. The `A1` label is a small chip (blue when supersetted), each set row has a faint set

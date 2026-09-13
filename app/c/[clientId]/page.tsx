@@ -73,21 +73,20 @@ export default async function WeekView({
           </div>
         </div>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Hi, {client.name}
-        </h1>
-
-        {/* Week switcher: arrows either side, the range in the middle. */}
-        <nav className="mt-4 flex items-center justify-between gap-2">
+        {/* The week switcher, pinned to the top of the screen. It is how you
+            move between weeks, so it stays reachable once the sessions scroll
+            under it. `.sticky-bar` carries the notch offset and full-bleeds
+            itself past <main>'s px-4. */}
+        <nav className="sticky-bar mt-2 flex items-center justify-between gap-2 border-b border-white/10 pb-2">
           <Link
             href={`/c/${clientId}?w=${offset - 1}`}
             aria-label="Previous week"
             className="card flex size-11 items-center justify-center rounded-full bg-white/8 text-xl"
           >‹</Link>
           <div className="text-center">
-            <div className="font-semibold">{weekLabel ?? formatWeekRange(monday)}</div>
+            <div className="font-semibold">{formatWeekRange(monday)}</div>
             {weekLabel ? (
-              <div className="text-xs text-white/45">{formatWeekRange(monday)}</div>
+              <div className="text-xs text-white/45">{weekLabel}</div>
             ) : (
               <Link href={`/c/${clientId}`} className="text-xs text-white/50 underline underline-offset-4">
                 back to this week
@@ -101,37 +100,50 @@ export default async function WeekView({
           >›</Link>
         </nav>
 
-        {/* Seven-day strip. A dot marks a programmed day, green when done,
-            and today is ringed so the week reads at a glance. */}
+        <h1 className="mt-4 text-3xl font-bold tracking-tight">
+          Hi, {client.name}
+        </h1>
+
+        {/* Seven-day strip. A square card per day, a dot under a programmed
+            one — green once the session is done — and a ring on today, so the
+            week reads at a glance. Tapping a card opens that session; there is
+            no client-side day selection, the page stays server-rendered. */}
         <ol className="mt-4 grid grid-cols-7 gap-1" aria-label="Days this week">
           {days.map((d) => {
             const wk = byDate.get(d);
             const isToday = d === now;
+            const label = (
+              <span className="text-[0.6rem] font-medium uppercase tracking-wide text-white/45">
+                {weekdayName(d, true)}
+              </span>
+            );
             return (
-              <li key={d} className="flex flex-col items-center gap-1">
-                <span className="text-[0.65rem] font-medium uppercase tracking-wide text-white/40">
-                  {weekdayName(d, true).slice(0, 2)}
-                </span>
+              <li key={d}>
                 {wk ? (
                   <a
                     href={`/c/${clientId}/w/${wk.id}`}
                     aria-label={`${weekdayName(d)} ${dayOfMonth(d)}, ${wk.title || "Session"}`}
-                    className={`flex size-9 items-center justify-center rounded-full text-sm font-semibold ${
-                      wk.done
-                        ? "bg-green-400/20 text-green-300"
-                        : "ink-fill"
-                    } ${isToday ? "ring-2 ring-white/60 ring-offset-2 ring-offset-[var(--background)]" : ""}`}
-                  >
-                    {dayOfMonth(d)}
-                  </a>
-                ) : (
-                  <span
-                    className={`flex size-9 items-center justify-center rounded-full text-sm text-white/45 ${
-                      isToday ? "ring-2 ring-white/40 ring-offset-2 ring-offset-[var(--background)]" : ""
+                    className={`card flex aspect-[5/6] flex-col items-center justify-center gap-0.5 rounded-xl border bg-surface text-sm font-semibold ${
+                      isToday ? "border-white/60 ring-1 ring-white/60" : "border-white/12"
                     }`}
                   >
-                    {dayOfMonth(d)}
-                  </span>
+                    {label}
+                    <span>{dayOfMonth(d)}</span>
+                    <span
+                      aria-hidden
+                      className={`size-1.5 rounded-full ${wk.done ? "bg-green-400" : "bg-white/55"}`}
+                    />
+                  </a>
+                ) : (
+                  <div
+                    className={`flex aspect-[5/6] flex-col items-center justify-center gap-0.5 rounded-xl border text-sm ${
+                      isToday ? "border-white/40" : "border-dashed border-white/12"
+                    }`}
+                  >
+                    {label}
+                    <span className="text-white/45">{dayOfMonth(d)}</span>
+                    <span aria-hidden className="size-1.5" />
+                  </div>
                 )}
               </li>
             );
@@ -196,6 +208,11 @@ export default async function WeekView({
                           ? ` · ${done} of ${total} sets`
                           : total > 0 ? ` · ${total} sets` : ""}
                     </div>
+                    {wk.exercises.length > 0 && (
+                      <div className="mt-1 line-clamp-2 text-sm text-white/45">
+                        {wk.exercises.map((e) => e.name.trim()).filter(Boolean).join(" · ")}
+                      </div>
+                    )}
                     {started && (
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden>
                         <div className="h-full rounded-full bg-white/70" style={{ width: `${pct}%` }} />
