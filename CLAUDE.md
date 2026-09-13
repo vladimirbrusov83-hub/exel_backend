@@ -19,10 +19,19 @@ was built and then removed at his request, and wiring in `~/Documents/CoachBrain
 explicitly declined. He writes programs by hand, copies a day, and edits the numbers
 himself.
 
-So: no progression logic, no suggested loads, no analytics, no accounts. A real database
-is exactly where that temptation comes back. It stays out.
+So: no progression logic, no suggested loads, no accounts. A real database is exactly
+where that temptation comes back. It stays out.
 
-Two things the app records about what happened, and only two: **ticking a set off** and
+**Statistics, September 2026, asked for by name.** `/c/<id>/stats` counts sessions marked
+done and sets ticked over the last 7 / 30 / 365 days, and stops there. That is the one
+crack in "no analytics" and it is a narrow one: totals are descriptive, per-window, and
+nothing reads them. No per-lift volume, no averages, no charts, no streaks, and above all
+nothing that suggests a load — per-exercise numbers sitting next to the loads is the
+surface this project keeps clear. Before adding a number there, ask whether it could be
+read as a recommendation.
+
+Two things the app records about what happened, and only two (the stats page counts
+these; it does not record a third): **ticking a set off** and
 **a per-set RIR/RPE rating** (both below). Vladimir asked for the rating in September 2026
 — he and his clients were already writing "100*5 (2)" into the notes by hand, so the app
 now has a box for it. It is still a thing the two of them look at, not an input to
@@ -545,6 +554,21 @@ touching what the app records. Nothing new is stored; every number shown is coun
 - **Coach text is amber with a left rule** everywhere the client reads it — session note,
   per-exercise notes, session-level note, and in history — prefixed `Coach ·`. The
   client's own notes in history are prefixed `You ·`.
+- **The week page header is `‹ Switch` and a ☰**, since September 2026. History,
+  Statistics, the passcode and Switch person live in the menu — four of them do not fit
+  across 375px as pills. `ClientMenu` is a client component: it closes on Escape, on a
+  tap outside, and **explicitly on every link**, because client-side navigation keeps its
+  DOM and an open panel would still be open on the next page. Its panel is `z-20`; the
+  week switcher under it is a `.sticky-bar` at `z-index: 10`.
+- **`/c/<id>/stats`** is three cards — last 7 / 30 / 365 days, each with sessions and
+  sets. Rolling windows off `today()`, not calendar weeks: "last week" already means the
+  previous Mon–Sun in the switcher, and a calendar window makes every number lurch every
+  Monday. Two different signals on purpose — a session counts only when Done was pressed,
+  sets count from the ticks. `setProgress` moved to `lib/types.ts` so the week page and
+  this one count a tick the same way; `done_sets` can hold a line number that no longer
+  points at a non-blank line, so `doneSets.length` would overcount. Future days are
+  filtered out (`date <= today()`), and no query was added — it is the `getAllWorkouts`
+  the history page already makes.
 - **Underlined text links are gone** on the client side: back links are `‹ Week`, history
   is a pill, the passcode is a lock icon button. `.card` gives every tappable row a small
   press scale.

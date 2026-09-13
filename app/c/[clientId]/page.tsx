@@ -5,22 +5,10 @@ import { getClient, getWorkoutsBetween } from "@/lib/db";
 import {
   addDays, dayOfMonth, formatWeekRange, mondayOf, today, weekDates, weekdayName,
 } from "@/lib/dates";
-import { setLines } from "@/lib/types";
+import { setProgress } from "@/lib/types";
+import ClientMenu from "./ClientMenu";
 
 export const dynamic = "force-dynamic";
-
-/** Non-blank set lines across the session, and how many are ticked. */
-function setProgress(exercises: { freeText: string; doneSets: number[] }[]) {
-  let total = 0;
-  let done = 0;
-  for (const ex of exercises) {
-    const lines = setLines(ex.freeText).filter((l) => l.text.trim() !== "");
-    total += lines.length;
-    const valid = new Set(lines.map((l) => l.index));
-    done += ex.doneSets.filter((n) => valid.has(n)).length;
-  }
-  return { total, done };
-}
 
 export default async function WeekView({
   params, searchParams,
@@ -55,22 +43,7 @@ export default async function WeekView({
             <span aria-hidden className="text-lg leading-none">‹</span>
             <span>Switch</span>
           </Link>
-          <div className="flex items-center gap-1">
-            <Link
-              href={`/c/${clientId}/history`}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/5"
-            >
-              <span aria-hidden>🗓</span> History
-            </Link>
-            <Link
-              href={`/c/${clientId}/passcode`}
-              title={client.hasPasscode ? "Change your passcode" : "Set a passcode"}
-              aria-label={client.hasPasscode ? "Change your passcode" : "Set a passcode"}
-              className="inline-flex size-11 items-center justify-center rounded-full text-base transition-colors hover:bg-white/5"
-            >
-              {client.hasPasscode ? "🔒" : "🔓"}
-            </Link>
-          </div>
+          <ClientMenu clientId={clientId} hasPasscode={client.hasPasscode} />
         </div>
 
         {/* The week switcher, pinned to the top of the screen. It is how you

@@ -132,3 +132,25 @@ export function exerciseLabels(
   });
   return out;
 }
+
+/**
+ * Non-blank set lines across a session, and how many of them are ticked.
+ *
+ * One definition, for the same reason `setLines` is one: `done_sets` can still
+ * hold a line number that no longer points at a non-blank line, so a tick is
+ * only counted when it lands on a line that is actually there. Counting
+ * `doneSets.length` instead inflates every total on the stats page.
+ */
+export function setProgress(
+  exercises: { freeText: string; doneSets: number[] }[],
+): { total: number; done: number } {
+  let total = 0;
+  let done = 0;
+  for (const ex of exercises) {
+    const lines = setLines(ex.freeText).filter((l) => l.text.trim() !== "");
+    total += lines.length;
+    const valid = new Set(lines.map((l) => l.index));
+    done += ex.doneSets.filter((n) => valid.has(n)).length;
+  }
+  return { total, done };
+}
