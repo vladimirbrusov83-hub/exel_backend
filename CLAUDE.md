@@ -581,6 +581,20 @@ touching what the app records. Nothing new is stored; every number shown is coun
   the fix is a dark strip over `env(safe-area-inset-top)` in light mode, not a change to
   `statusBarStyle` (that would zero the inset the sticky bar is built around).
 
+## Installable (PWA)
+
+September 2026. `app/manifest.ts` (served at `/manifest.webmanifest`), icons in
+`public/icons/` plus `app/apple-icon.png` (iOS ignores manifest icons), drawn with Pillow:
+a pale-blue barbell on `#1b1c22`. The maskable one keeps the glyph inside the safe zone.
+
+`public/sw.js` is **navigation-only and caches nothing, on purpose.** Every page is live
+data, so a cached page is a stale program. All it does is swap the browser's error page
+for a "No connection" screen when a page load fails. It does not touch RSC fetches,
+`_next` assets or server-action POSTs. Don't "improve" it into a caching worker.
+`next.config.ts` serves it `no-store` so fixes reach phones; `components/RegisterSW.tsx`
+registers it in production only (it fights Turbopack HMR in dev). The middleware only
+matches `/coach*`, so none of these files sit behind the passcode. Keep it that way.
+
 ## Vertical space on the session page
 
 Asked for "10% more compact" and measured, not eyeballed: 1773px → 1599px of page at
